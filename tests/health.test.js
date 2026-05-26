@@ -1,0 +1,23 @@
+const request = require('supertest');
+const app = require('../server/index');
+
+describe('HealthBridge Africa API', () => {
+  test('GET / returns status ok', async () => {
+    const res = await request(app).get('/');
+    expect(res.statusCode).toBe(200);
+    expect(res.body.status).toBe('ok');
+  });
+
+  test('GET /api/health returns ok', async () => {
+    const res = await request(app).get('/api/health');
+    expect(res.statusCode).toBe(200);
+    expect(res.body.status).toBe('ok');
+  });
+
+  test('POST /api/chat without query returns 400', async () => {
+    const res = await request(app)
+      .post('/api/chat')
+      .send({});
+    expect(res.statusCode).toBe(400);
+  });
+});
