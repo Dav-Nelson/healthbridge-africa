@@ -30,7 +30,7 @@ documents.
 ## How it works
 
 ```
-User speaks (Pidgin · Amharic · Swahili · African English)
+User speaks (Pidgin · Oromo · Swahili · African English)
         ↓
 Whisper STT → converts speech to text
         ↓
@@ -79,7 +79,7 @@ User hears answer in accessible, clear Language
 
 | Name | Country | Role |
 |------|---------|------|
-| David Nelson | Nigeria 🇳🇬 | Project lead · Fullstack (PERN) · 
+| David Nelson | Nigeria 🇳🇬 | System Design · Backend development · 
 | Ibukun Oluwafemi | Nigeria 🇳🇬 | Frontend developer · UI/UX | Health domain |
 | Ibsa Magarsa | Ethiopia 🇪🇹 | AI pipeline · Python · Amharic validation |
 | Peggy Eyram Attah | Ghana 🇬🇭 | User research · Tester recruitment · Twi validation |
