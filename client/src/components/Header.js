@@ -20,7 +20,7 @@ export default function Header({language, setLanguage}) {
                         onChange={(e) => setLanguage(e.target.value)}
                         className='bg-transparent text-sm font-semibold text-slate-700 outline-none cursor-pointer'
                     >
-                        {language.map((lang) => (
+                        {languages.map((lang) => (
                             <option key={lang} value={lang}>{lang}</option>
                         ))}
                     </select>
