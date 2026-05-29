@@ -20,4 +20,20 @@ describe('HealthBridge Africa API', () => {
       .send({});
     expect(res.statusCode).toBe(400);
   });
+
+  test('POST /api/chat with query returns 200', async () => {
+    const res = await request(app)
+      .post('/api/chat')
+      .send({ query: 'What are symptoms of malaria?', language: 'english' });
+    expect(res.statusCode).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.response).toBeDefined();
+  }, 30000);
+
+  test('POST /api/voice/transcribe without file returns 400', async () => {
+    const res = await request(app)
+      .post('/api/voice/transcribe')
+      .send({});
+    expect(res.statusCode).toBe(400);
+  });
 });
