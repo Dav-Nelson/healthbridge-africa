@@ -2,6 +2,9 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 
+// 🚀 ADD THIS LINE HERE to force the database connection to initialize
+require('./db/index'); 
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 
