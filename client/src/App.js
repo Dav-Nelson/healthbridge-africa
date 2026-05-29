@@ -19,8 +19,8 @@ export default function App() {
   const handleSendMessage = async (textToProcess) => {
     if (!textToProcess.trim()) return;
 
-    const newMessages = [...messages, { sender: 'user', text: textToProcess }];
-    setMessages(newMessages);
+    // FIX: Safely append user message using functional state
+    setMessages(prev => [...prev, { sender: 'user', text: textToProcess }]);
     setInputValue('');
     setIsLoading(true);
 
@@ -37,10 +37,12 @@ export default function App() {
       if (!response.ok) throw new Error('API response failed');
       const data = await response.json();
       
-      setMessages([...newMessages, { sender: 'bot', text: data.response }]);
+      // FIX: Safely append bot message using functional state
+      setMessages(prev => [...prev, { sender: 'bot', text: data.response }]);
     } catch (error) {
       console.error("Chat Error:", error);
-      setMessages([...newMessages, { sender: 'bot', text: "Sorry, I am having trouble connecting to the server right now." }]);
+      // FIX: Safely append error message using functional state
+      setMessages(prev => [...prev, { sender: 'bot', text: "Sorry, I am having trouble connecting to the server right now." }]);
     } finally {
       setIsLoading(false);
     }
@@ -104,7 +106,9 @@ export default function App() {
       }
     } catch (error) {
       console.error("Transcription Error:", error);
+      // FIX: Safely append error message using functional state
       setMessages(prev => [...prev, { sender: 'bot', text: "Sorry, I couldn't process your voice message." }]);
+    } finally {
       setIsLoading(false);
     }
   };
