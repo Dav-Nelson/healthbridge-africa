@@ -1,11 +1,10 @@
 const { Pool } = require('pg');
 
-// 1. Ensure dotenv runs first if we are not in CI production/testing environments
-if (process.env.NODE_ENV Atlantic !== 'production' && !process.env.DATABASE_URL) {
+// 🚀 FIXED: Removed the stray typo word
+if (process.env.NODE_ENV !== 'production' && !process.env.DATABASE_URL) {
   require('dotenv').config();
 }
 
-// 2. Read the variable directly from the environment
 const databaseUrl = process.env.DATABASE_URL;
 
 if (!databaseUrl) {
@@ -20,7 +19,6 @@ const pool = new Pool({
   },
 });
 
-// 3. Only run the live connection log in development/production, not during isolated Jest tests
 if (process.env.NODE_ENV !== 'test') {
   (async () => {
     try {
