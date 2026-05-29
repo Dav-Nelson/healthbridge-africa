@@ -1,0 +1,166 @@
+# ai-pipeline/main.py
+"""
+FastAPI server for HealthBridge Africa AI Pipeline.
+Node.js backend calls these endpoints.
+
+Run: uvicorn main:app --reload --port 8000
+     (from inside ai-pipeline/ folder)
+"""
+import os
+import sys
+import shutil
+from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from groq import Groq
+from dotenv import load_dotenv
+
+# Make sure rag/ is importable
+# sys.path.insert(0, os.path.dirname(__file__))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from rag.query import ask_rag
+
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
+
+client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+
+app = FastAPI(
+    title="HealthBridge Africa — AI Pipeline",
+    description="Multilingual voice health agent for Africa",
+    version="0.2.0"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+# ── Request models ───────────────────────────────────────
+class QuestionRequest(BaseModel):
+    question: str
+    language: str = "en"
+
+
+# ── Endpoints ────────────────────────────────────────────
+
+@app.get("/")
+def home():
+    return {
+        "message": "HealthBridge Africa AI Pipeline running",
+        "version": "0.2.0",
+        "endpoints": ["/ask", "/transcribe", "/voice-agent"]
+    }
+
+
+@app.post("/ask")
+async def ask_question(data: QuestionRequest):
+    """Text question → grounded health answer via RAG + Groq."""
+    try:
+        result = ask_rag(data.question)
+        return {
+            "question": data.question,
+            "answer": result["answer"],
+            "similarity_score": result["score"],
+            "sources": result.get("sources", []),
+            "language": data.language
+        }
+    except FileNotFoundError as e:
+        raise HTTPException(
+            status_code=503,
+            detail="Knowledge base not ready. Run ingest.py first."
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/transcribe")
+async def transcribe_audio(
+    file: UploadFile = File(...),
+    language: str = "en"
+):
+    """
+    Audio file → transcribed text using Groq Whisper.
+    
+    language options: "en", "sw", "om", "ha" (Hausa), etc.
+    Pass from frontend based on user's selected language.
+    """
+    temp_path = f"temp_{file.filename}"
+    
+    try:
+        # Save uploaded file temporarily
+        with open(temp_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        
+        # Transcribe with Groq Whisper (cloud, free tier)
+        with open(temp_path, "rb") as audio_file:
+            transcription = client.audio.transcriptions.create(
+                model="whisper-large-v3",   # Best Whisper model, free on Groq
+                file=audio_file,
+                language=language,           # Forced language — no guessing
+                response_format="json"
+            )
+        
+        return {
+            "text": transcription.text,
+            "language": language,
+            "status": "success"
+        }
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+    finally:
+        # Always clean up temp file
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
+
+
+@app.post("/voice-agent")
+async def voice_agent(
+    file: UploadFile = File(...),
+    language: str = "en"
+):
+    """
+    Full pipeline: Audio → STT → RAG → Answer
+    This is the main endpoint the voice UI will use.
+    
+    Returns: what the user said + health answer
+    """
+    temp_path = f"temp_{file.filename}"
+    
+    try:
+        with open(temp_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        
+        # Step 1: Speech to Text (Groq Whisper)
+        with open(temp_path, "rb") as audio_file:
+            transcription = client.audio.transcriptions.create(
+                model="whisper-large-v3",
+                file=audio_file,
+                language=language,
+                response_format="json"
+            )
+        
+        user_text = transcription.text
+        print(f"STT result: {user_text}")
+        
+        # Step 2: RAG answer (Groq Llama 3)
+        rag_result = ask_rag(user_text)
+        
+        return {
+            "detected_language": language,
+            "user_text": user_text,
+            "answer": rag_result["answer"],
+            "similarity_score": rag_result["score"],
+            "sources": rag_result.get("sources", [])
+        }
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+    finally:
+        if os.path.exists(temp_path):
+            os.remove(temp_path)

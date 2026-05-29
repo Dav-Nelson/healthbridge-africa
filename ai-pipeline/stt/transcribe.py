@@ -1,18 +1,13 @@
 import whisper
 
-model = whisper.load_model("base")
+print("Loading Whisper model...")
 
-def transcribe(audio_path):
-    result = model.transcribe(audio_path)
+model = whisper.load_model("large-v2")
 
-    return {
-        "text": result["text"],
-        "language": result["language"]
-    }
+print("Transcribing audio...")
 
-if __name__ == "__main__":
-    audio_file = "sample.wav"
+# result = model.transcribe("ai-pipeline/audio/video_Udara_Week1.mp4")
+result= model.transcribe("ai-pipeline/audio/diabetes_audio_question.mp3")
 
-    output = transcribe(audio_file)
-
-    print(output)
+print("\nTranscription:\n")
+print(result["text"])
