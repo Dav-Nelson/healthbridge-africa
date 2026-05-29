@@ -6,7 +6,7 @@ export default function Header({language, setLanguage}) {
 
     return(
         <header className='bg-white border-b border-teal-100 shadow-sm sticky top-0 z-10'>
-            <div className='ma-w-4xl mx-auto px-4 py-4 fle items-center justify-between'>
+            <div className='max-w-4xl mx-auto px-4 py-4 flex items-center justify-between'>
                 <div className='flex items-center gap-2 text-teal-700'>
                     <HeartPulse size={28} className='animate-pulse'/>
                     <h1 className='text-xl md:text-2xl front-extrabold tracking-tight'>
