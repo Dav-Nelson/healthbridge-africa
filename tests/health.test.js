@@ -1,6 +1,11 @@
 const request = require('supertest');
 const app = require('../server/index');
 
+// 🛠️ MOCK THE GROQ SERVICE TO BYPASS LIVE NETWORK CALLS IN CI TEST
+jest.mock('../server/services/groq', () => ({
+  generateHealthResponse: jest.fn().mockResolvedValue('Malaria symptoms include fever, chills, and fatigue.')
+}));
+
 describe('HealthBridge Africa API', () => {
   test('GET / returns status ok', async () => {
     const res = await request(app).get('/');
