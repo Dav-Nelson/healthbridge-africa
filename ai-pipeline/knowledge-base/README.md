@@ -8,6 +8,7 @@ These documents are the RAG knowledge base — the source of truth
 that HealthBridge Africa retrieves from when answering health questions.
 The AI only answers from what is in this knowledge base.
 
+
 ## Files
 - `nigeria-health-facts.md` — Common conditions in Nigeria
 - `ethiopia-health-facts.md` — Common conditions in Ethiopia

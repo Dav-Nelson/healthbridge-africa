@@ -27,9 +27,7 @@ def get_embedding(text: str) -> list:
     # from sentence_transformers import SentenceTransformer
     # model = SentenceTransformer("all-MiniLM-L6-v2")  # 80MB, free, fast
 
-# def get_embedding(text):
     return embed_model.encode(text).tolist()
-    # return model.encode(text).tolist()
 
 
 def chunk_text(text: str, chunk_size: int = 300, overlap: int = 50) -> list:
@@ -73,12 +71,11 @@ def ingest_file(filepath: str, source_name: str):
         })
     
     # Load existing store if it exists, then append
-    # store_path = "ai-pipeline/docs/vector_store.json"
     store_path = os.path.join(
-    os.path.dirname(__file__),
-    "..",
-    "docs",
-    "vector_store.json"
+        os.path.dirname(__file__),
+        "..",
+        "docs",
+        "vector_store.json"
     )
     store_path = os.path.abspath(store_path)
     existing = []
@@ -100,19 +97,17 @@ if __name__ == "__main__":
     store_path = "docs/vector_store.json"
 
     with open(store_path, "w", encoding="utf-8") as f:
-        
         json.dump([], f)
+        
     docs = [
-    ("docs/malaria.txt", "Malaria Guidelines"),
-
-    ("knowledge-base/ethiopia-health-facts.md", "Ethiopia Health Facts"),
-    ("knowledge-base/ghana-health-facts.md", "Ghana Health Facts"),
-    ("knowledge-base/kenya-health-facts.md", "Kenya Health Facts"),
-    ("knowledge-base/nigeria-health-facts.md", "Nigeria Health Facts"),
-
-    ("knowledge-base/WHO-guidelines.md", "WHO Guidelines"),
-    ("knowledge-base/sources.md", "Sources")
-]
+        ("docs/malaria.txt", "Malaria Guidelines"),
+        ("knowledge-base/ethiopia-health-facts.md", "Ethiopia Health Facts"),
+        ("knowledge-base/ghana-health-facts.md", "Ghana Health Facts"),
+        ("knowledge-base/kenya-health-facts.md", "Kenya Health Facts"),
+        ("knowledge-base/nigeria-health-facts.md", "Nigeria Health Facts"),
+        ("knowledge-base/WHO-guidelines.md", "WHO Guidelines"),
+        ("knowledge-base/sources.md", "Sources")
+    ]
     
     for filepath, source_name in docs:
         if os.path.exists(filepath):
