@@ -11,3 +11,4 @@ result= model.transcribe("ai-pipeline/audio/diabetes_audio_question.mp3")
 
 print("\nTranscription:\n")
 print(result["text"])
+

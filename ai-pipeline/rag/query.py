@@ -139,3 +139,5 @@ if __name__ == "__main__":
     print(result["answer"])
     print(f"\nTop similarity score: {result['score']}")
     print(f"Sources used: {result['sources']}")
+    
+    
