@@ -98,8 +98,10 @@ def ask_rag(question: str) -> dict:
     
     context = context[:6000]
     # Call Groq (Llama 3) — fast, free, cloud-based
+    # response = client.chat.completions.create(
+    #     model="llama3-8b-8192",   # Free Llama 3 on Groq
     response = client.chat.completions.create(
-        model="llama3-8b-8192",   # Free Llama 3 on Groq
+        model="llama-3.3-70b-versatile",
         messages=[
             {
                 "role": "system",
