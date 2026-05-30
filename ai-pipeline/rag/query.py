@@ -34,7 +34,15 @@ def cosine_similarity(a, b) -> float:
 def search_documents(question: str, top_k: int = 3) -> list:
     """Find the top_k most relevant chunks for a question."""
     
-    store_path = "ai-pipeline/docs/vector_store.json"
+    # store_path = "ai-pipeline/docs/vector_store.json"
+    
+    store_path = os.path.join(
+    os.path.dirname(__file__),
+    "..",
+    "docs",
+    "vector_store.json"
+    )
+    
     if not os.path.exists(store_path):
         raise FileNotFoundError(
             "vector_store.json not found. Run ingest.py first."
@@ -60,7 +68,19 @@ def ask_rag(question: str) -> dict:
     """Full RAG: search knowledge base, then answer with Groq Llama 3."""
     
     top_chunks = search_documents(question, top_k=3)
-    
+    best_score = top_chunks[0]["score"]
+
+    if best_score < 0.45:
+        return {
+            "answer": (
+                "I could not find reliable information in the "
+                "HealthBridge knowledge base for that question. "
+                "Please consult a healthcare professional."
+            ),
+            "context": "",
+            "score": round(best_score, 4),
+            "sources": []
+        }
     if not top_chunks:
         return {
             "answer": "I don't have verified information on that. Please consult a healthcare provider.",
@@ -76,6 +96,7 @@ def ask_rag(question: str) -> dict:
         )
     context = "\n\n".join(context_parts)
     
+    context = context[:6000]
     # Call Groq (Llama 3) — fast, free, cloud-based
     response = client.chat.completions.create(
         model="llama3-8b-8192",   # Free Llama 3 on Groq
@@ -83,11 +104,14 @@ def ask_rag(question: str) -> dict:
             {
                 "role": "system",
                 "content": (
-                    "You are a health information assistant for HealthBridge Africa. "
-                    "Answer ONLY using the verified context provided. "
-                    "Do not add information not in the context. "
-                    "Always end with whether the person should seek professional care. "
-                    "Keep answers clear and simple — users may have limited health literacy."
+                "You are HealthBridge Africa's health information assistant. "
+                "Use ONLY the supplied context. "
+                "Never diagnose diseases. "
+                "Never prescribe medication. "
+                "Never invent medical information. "
+                "If the answer is not in the context, say so clearly. "
+                "Always recommend professional medical care when symptoms are severe or persistent. "
+                "Keep responses simple and easy to understand."
                 )
             },
             {
