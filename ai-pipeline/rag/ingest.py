@@ -51,7 +51,10 @@ def ingest_file(filepath: str, source_name: str):
     
     with open(filepath, "r", encoding="utf-8") as f:
         text = f.read()
-    
+        
+    if not text.strip():
+        print(f"Skipping empty file: {source_name}")
+        return
     chunks = chunk_text(text)
     print(f"Created {len(chunks)} chunks")
     
@@ -87,11 +90,22 @@ def ingest_file(filepath: str, source_name: str):
 
 if __name__ == "__main__":
     # Ingest all your health documents
+    store_path = "ai-pipeline/docs/vector_store.json"
+
+    with open(store_path, "w", encoding="utf-8") as f:
+        
+        json.dump([], f)
     docs = [
-        ("ai-pipeline/docs/malaria.txt",              "Malaria Guidelines"),
-        ("ai-pipeline/knowledge/ethiopia-health-facts.md",  "Ethiopia Health Facts"),
-        ("ai-pipeline/knowledge/who-guidelines.md",         "WHO Guidelines"),
-    ]
+    ("docs/malaria.txt", "Malaria Guidelines"),
+
+    ("knowledge-base/ethiopia-health-facts.md", "Ethiopia Health Facts"),
+    ("knowledge-base/ghana-health-facts.md", "Ghana Health Facts"),
+    ("knowledge-base/kenya-health-facts.md", "Kenya Health Facts"),
+    ("knowledge-base/nigeria-health-facts.md", "Nigeria Health Facts"),
+
+    ("knowledge-base/WHO-guidelines.md", "WHO Guidelines"),
+    ("knowledge-base/sources.md", "Sources")
+]
     
     for filepath, source_name in docs:
         if os.path.exists(filepath):
