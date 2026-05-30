@@ -73,7 +73,14 @@ def ingest_file(filepath: str, source_name: str):
         })
     
     # Load existing store if it exists, then append
-    store_path = "ai-pipeline/docs/vector_store.json"
+    # store_path = "ai-pipeline/docs/vector_store.json"
+    store_path = os.path.join(
+    os.path.dirname(__file__),
+    "..",
+    "docs",
+    "vector_store.json"
+    )
+    store_path = os.path.abspath(store_path)
     existing = []
     if os.path.exists(store_path):
         with open(store_path, "r", encoding="utf-8") as f:
@@ -90,7 +97,7 @@ def ingest_file(filepath: str, source_name: str):
 
 if __name__ == "__main__":
     # Ingest all your health documents
-    store_path = "ai-pipeline/docs/vector_store.json"
+    store_path = "docs/vector_store.json"
 
     with open(store_path, "w", encoding="utf-8") as f:
         
