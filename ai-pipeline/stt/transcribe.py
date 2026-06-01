@@ -2,7 +2,7 @@ import whisper
 
 print("Loading Whisper model...")
 
-model = whisper.load_model("large-v2")
+model = whisper.load_model("large-v3")
 
 print("Transcribing audio...")
 
