@@ -1,8 +1,12 @@
 const Groq = require('groq-sdk');
 require('dotenv').config();
 
+// FIX: Provide a safe fallback string so the Jest testing suite doesn't crash 
+// when GitHub Actions runs a fork PR without access to your .env secrets.
+const apiKey = process.env.GROQ_API_KEY || 'gsk_mock_key_for_github_actions_ci_testing';
+
 const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY
+  apiKey: apiKey
 });
 
 const SYSTEM_PROMPT = `You are HealthBridge Africa, a health information assistant for people across Africa.

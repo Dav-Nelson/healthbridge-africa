@@ -14,9 +14,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from groq import Groq
 from dotenv import load_dotenv
+
 from langdetect import detect
 from tts.speak import text_to_speech
 from openai import OpenAI
+
 
 # Make sure rag/ is importable
 # sys.path.insert(0, os.path.dirname(__file__))

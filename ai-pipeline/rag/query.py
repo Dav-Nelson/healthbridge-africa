@@ -34,13 +34,11 @@ def cosine_similarity(a, b) -> float:
 def search_documents(question: str, top_k: int = 3) -> list:
     """Find the top_k most relevant chunks for a question."""
     
-    # store_path = "ai-pipeline/docs/vector_store.json"
-    
     store_path = os.path.join(
-    os.path.dirname(__file__),
-    "..",
-    "docs",
-    "vector_store.json"
+        os.path.dirname(__file__),
+        "..",
+        "docs",
+        "vector_store.json"
     )
     
     if not os.path.exists(store_path):
@@ -70,6 +68,16 @@ def ask_rag(question: str) -> dict:
     """
     
     top_chunks = search_documents(question, top_k=3)
+    
+    # ✅ Fix: Check if top_chunks is empty BEFORE accessing index 0
+    if not top_chunks:
+        return {
+            "answer": "I don't have verified information on that. Please consult a healthcare provider.",
+            "context": "",
+            "score": 0,
+            "sources": []
+        }
+        
     best_score = top_chunks[0]["score"]
 
     if best_score < 0.45:
@@ -83,12 +91,6 @@ def ask_rag(question: str) -> dict:
             "score": round(best_score, 4),
             "sources": []
         }
-    if not top_chunks:
-        return {
-            "answer": "I don't have verified information on that. Please consult a healthcare provider.",
-            "context": "",
-            "score": 0
-        }
     
     # Build context from top chunks
     context_parts = []
@@ -99,23 +101,22 @@ def ask_rag(question: str) -> dict:
     context = "\n\n".join(context_parts)
     
     context = context[:6000]
+    
     # Call Groq (Llama 3) — fast, free, cloud-based
-    # response = client.chat.completions.create(
-    #     model="llama3-8b-8192",   # Free Llama 3 on Groq
     response = client.chat.completions.create(
         model="llama-3.3-70b-versatile",
         messages=[
             {
                 "role": "system",
                 "content": (
-                "You are HealthBridge Africa's health information assistant. "
-                "Use ONLY the supplied context. "
-                "Never diagnose diseases. "
-                "Never prescribe medication. "
-                "Never invent medical information. "
-                "If the answer is not in the context, say so clearly. "
-                "Always recommend professional medical care when symptoms are severe or persistent. "
-                "Keep responses simple and easy to understand."
+                    "You are HealthBridge Africa's health information assistant. "
+                    "Use ONLY the supplied context. "
+                    "Never diagnose diseases. "
+                    "Never prescribe medication. "
+                    "Never invent medical information. "
+                    "If the answer is not in the context, say so clearly. "
+                    "Always recommend professional medical care when symptoms are severe or persistent. "
+                    "Keep responses simple and easy to understand."
                 )
             },
             {
@@ -131,7 +132,7 @@ def ask_rag(question: str) -> dict:
         "answer": response.choices[0].message.content,
         "context": context,
         "score": round(top_chunks[0]["score"], 4),
-        "sources": [c.get("source", "unknown") for c in top_chunks]
+        "sources": list(set([c.get("source", "unknown") for c in top_chunks])) # ✅ Deduplicated sources list
     }
 
 
@@ -141,4 +142,3 @@ if __name__ == "__main__":
     print(result["answer"])
     print(f"\nTop similarity score: {result['score']}")
     print(f"Sources used: {result['sources']}")
-    
