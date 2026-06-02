@@ -63,7 +63,9 @@ def search_documents(question: str, top_k: int = 3) -> list:
 
 
 def ask_rag(question: str) -> dict:
-    """Full RAG: search knowledge base, then answer with Groq Llama 3."""
+    """Full RAG: search knowledge base, then answer with Groq Llama 3.
+    
+    """
     
     top_chunks = search_documents(question, top_k=3)
     
