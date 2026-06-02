@@ -209,3 +209,105 @@ Viral Hemorrhagic Fevers represent severe, acute viral infections capable of cau
 ### Clinical Profiles
 * **Ebola & Marburg Virus Diseases:** Onset is sudden, characterized by acute fever, profound asthenia (weakness), and sore throat. This quickly escalates to severe vomiting, diarrhea, impaired hepatic and renal function, and conspicuous internal and external hemorrhaging.
 * **Lassa Fever:** Typically presents with initial pyrexia (fever), malaise, and diffuse muscle pain, which can progress to bleeding from bodily orifices, widespread vascular leakage, and hypovolemic shock.
+Warning signs of communicable diseases include sudden fever, persistent cough, extreme fatigue, and gastrointestinal issues. Recognizing these early indicators allows for prompt medical intervention, helping to prevent the spread of contagious infections to others. 
+The most common early and systemic warning signs include:
+* Fever or Chills: A rise in body temperature is one of the body's primary responses to an infection.
+* Fatigue and Muscle Aches: General malaise, lethargy, and widespread muscle or joint pain.
+
+Signs are often grouped by how the disease primarily affects the body: 
+
+1. Respiratory Symptoms
+* Persistent or severe coughing, sometimes accompanied by wheezing.
+* Sore throat or difficulty swallowing.
+* Nasal congestion, sneezing, or a runny nose. 
+
+2. Gastrointestinal Symptoms
+* Watery diarrhea or frequent loose stools.
+* Severe abdominal cramps or pain.
+* Nausea, vomiting, and a sudden loss of appetite. 
+
+3. Skin and Body Indicators
+* Unexplained skin rashes, redness, or lesions (e.g., chickenpox or measles).
+* Swollen lymph nodes, particularly in the neck, armpits, or groin.
+* Unexplained or unintentional weight loss (common in diseases like tuberculosis)
+
+When to Seek Immediate Medical Attention
+While many communicable diseases are mild (like the common cold), you should seek professional medical care immediately if you experience the following "red flag" symptoms:
+* Difficulty breathing or shortness of breath.
+* High, persistent fever that does not respond to medication.
+* Confusion, severe headache, or a stiff neck.
+* Signs of severe dehydration (e.g., extreme thirst, dry mouth, little to no urination).
+* A bluish tint to the lips or face. 
+
+Home remedies cannot cure communicable (infectious) diseases, but they are highly effective at easing symptoms and supporting your immune system while your body fights off the infection. Communicable illnesses range from the common cold to more severe bacterial or viral infections. 
+Always consult a healthcare provider for severe symptoms or conditions requiring targeted medical treatment (like antibiotics or antivirals). 
+
+Essential Support Strategies
+* Aggressive Hydration: Drink plenty of water, clear broths, or warm lemon water. Fluids thin out mucus, ease congestion, and prevent dehydration caused by fevers. 
+* Prioritized Rest: Stay home and sleep as much as possible. Rest allows your immune system to redirect its maximum energy toward fighting off the pathogen.
+* 
+    * Air Humidification: Use a cool-mist humidifier or take a steamy shower. The added moisture soothes dry, irritated breathing passages and loosens stubborn chest and nasal congestion. 
+
+Science-Backed Symptom Relief
+* Saltwater Gargle: Dissolve \(\frac{1}{4}\) to \(\frac{1}{2}\) teaspoon of salt in 8 ounces of warm water. Gargling several times a day temporarily draws out fluid to reduce throat swelling and discomfort. 
+* Honey: Consume a spoonful of honey or mix it into warm tea to act as a natural cough suppressant and soothe raw throat tissues. (Safety note: Never give honey to infants under 12 months old due to the risk of botulism). 
+* Ginger and Garlic: Brew fresh ginger tea to curb infection-related nausea and muscle pain. Add fresh garlic to meals; it contains allicin, which possesses mild, natural antimicrobial properties. 
+* Chicken Soup: Eat warm chicken or bone broth. The heat speeds up nasal clearance, while the nutrients provide easily digestible calories that limit inflammatory white blood cell movement
+
+
+NON-COMMUNICABLE DISEASES
+Non-communicable diseases (NCDs)—primarily cardiovascular diseases, cancers, diabetes, and chronic respiratory diseases—are a rapidly escalating health crisis in Africa. Driven by rising urbanization, dietary shifts, and lifestyle changes, NCDs now account for over a fifth of all deaths in sub-Saharan Africa, placing a heavy burden on developing health systems. 
+
+The Leading NCDs in Africa
+* Cardiovascular Disease (CVD): Conditions like hypertension and stroke are leading causes of NCD-related mortality across the continent. In many areas, over a third of adults live with hypertension, but very few have it under control. 
+SYMPTOMS:
+Heart & Chest
+* Chest pain or pressure (Angina): Tightness, heaviness, or discomfort in the chest, sometimes radiating to the neck, jaw, back, or arms.
+* Heart palpitations: Sensation of a racing, pounding, or fluttering heartbeat. 
+
+Breathing & Circulation
+* Shortness of breath: Breathlessness that occurs during physical activity or even at rest.
+* Swelling: Fluid build-up leading to swelling in the legs, ankles, feet, or abdomen.
+* Dizziness: Lightheadedness or fainting spells. 
+General Signs
+* Unusual fatigue: Extreme tiredness or exhaustion, even after minimal exertion.
+* Pain in extremities: Cramping, pain, or numbness in the legs or arms, which can indicate peripheral artery disease. 
+Note: Symptoms can present differently depending on the individual. Women, for instance, are more likely to experience atypical symptoms like nausea, indigestion, or unexplained anxiety during a heart attack. Some people may have no symptoms at all until a major event like a heart attack or stroke occurs. 
+
+* Cancer: Cancers (including breast, cervical, and prostate) are a leading cause of death in Africa, made worse by delayed diagnoses and limited screening access.
+
+General Signs to Watch For
+* Unexplained Weight Loss: Losing 10 pounds (approx. 4.5 kg) or more for no apparent reason.
+* Persistent Fatigue: Extreme tiredness that does not improve with a good night's sleep or rest.
+* Unexplained Pain: New or worsening pain anywhere in the body that does not go away.
+* Fever or Night Sweats: Frequent unexplained fevers or heavy night sweats. 
+
+Changes to Look For
+* Skin Changes: New moles, existing moles that change in size/shape/color, or sores that won't heal.
+* Lumps or Thickening: Any unusual lump or thickened area that can be felt under the skin.
+* Bowel or Bladder Habits: Persistent constipation, diarrhea, or a noticeable change in stool consistency; pain during urination or blood in the urine.
+* Coughing or Hoarseness: A persistent, nagging cough or hoarseness that does not improve.
+* Bleeding or Bruising: Unexplained bleeding (e.g., blood in stool, coughing up blood, abnormal vaginal bleeding) or easy bruising.
+* Eating and Swallowing: Difficulty swallowing, persistent indigestion, or feeling full after eating very little. 
+NB: Visit the hospital or clinic as soon as possible. 
+
+* Diabetes: Over 25 million Africans live with diabetes. Without intervention, this number is projected to double. 
+* Chronic Respiratory Diseases: Conditions like chronic obstructive pulmonary disease (COPD) and asthma heavily affect populations, often exacerbated by household air pollution. 
+
+Diabetes symptoms vary based on how much your blood sugar levels are elevated. While Type 1 diabetessymptoms usually develop rapidly and severely, Type 2 diabetes symptoms often progress slowly and may go completely unnoticed for years. 
+
+The "Classic" Three Signs
+* Polyuria: Urinating much more frequently than usual, especially at night.
+* Polydipsia: Feeling an intense, unquenchable thirst due to dehydration from frequent urination.
+* Polyphagia: Experiencing extreme, constant hunger even after consuming food. 
+
+Other Common Symptoms
+* Unintended Weight Loss: Dropping weight rapidly without trying, as the body burns fat and muscle for energy.
+* Chronic Fatigue: Feeling weak, exhausted, or severely lacking energy because your body cannot properly use glucose.
+* Blurred Vision: Temporary changes in eyesight caused by shifting blood sugar levels pulling fluid from the lenses of the eyes.
+* Slow-Healing Wounds: Minor cuts, scratches, or bruises that take an unusually long time to heal.
+* Frequent Infections: Getting recurring skin, gum, urinary tract, or vaginal yeast infections.
+* Neuropathy Signs: Experiencing tingling, numbness, or a burning pain in the hands or feet.
+* Darkened Skin: Noticing patches of velvety, dark skin around the neck, armpits, or groin area (primarily in Type 2 or prediabetes
+* source:WHO, Cleaveland Clinic, Mayo Clinic
+
