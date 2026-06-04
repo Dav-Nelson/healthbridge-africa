@@ -1,8 +1,8 @@
 const express = require('express');
+const axios = require('axios');
 const router = express.Router();
 const multer = require('multer');
 const { transcribeAudio } = require('../services/groq');
-const { generateHealthResponse } = require('../services/groq');
 
 const upload = multer({ 
   storage: multer.memoryStorage(),
@@ -30,12 +30,26 @@ router.post('/chat', upload.single('audio'), async (req, res) => {
     return res.status(400).json({ error: 'Audio file is required' });
   }
   try {
-    const text = await transcribeAudio(req.file.buffer, req.file.mimetype);
-    const response = await generateHealthResponse(text);
-    res.json({ 
+    // 1. Convert the file buffer into a standard Blob object
+    const audioBlob = new Blob([req.file.buffer], { type: req.file.mimetype });
+    
+    // 2. Extract the user language from the frontend request (defaults to 'en')
+    const selectedLanguage = req.body.language || 'en';
+
+    // 3. Pack everything cleanly into a standard form object
+    const formData = new FormData();
+    formData.append('file', audioBlob, req.file.originalname || 'audio.wav');
+    formData.append('language', selectedLanguage);
+    // 4. Send it directly to Ibsa's Python FastAPI server
+    const pipelineBaseUrl = process.env.AI_PIPELINE_URL || 'http://127.0.0.1:8000';
+    const response = await axios.post(`${pipelineBaseUrl}/voice-agent`, formData);
+
+    // 5. Send the AI pipeline data back to the frontend UI
+    res.json({
       success: true,
-      transcribed: text,
-      response,
+      transcribed: response.data.user_text,
+      response: response.data.answer,
+      sources: response.data.sources,
       disclaimer: 'This is not medical advice. Please see a doctor for diagnosis and treatment.'
     });
   } catch (error) {

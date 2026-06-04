@@ -137,13 +137,10 @@ async def transcribe_audio(
 @app.post("/voice-agent")
 async def voice_agent(
     file: UploadFile = File(...),
-    language: str = "auto"
+    language: str = "en"  # Default to "en", but expect standard codes from your Express backend
 ):
     """
     Full pipeline: Audio → STT → RAG → Answer
-    This is the main endpoint the voice UI will use.
-    
-    Returns: what the user said + health answer
     """
     temp_path = f"temp_{file.filename}"
     
@@ -151,33 +148,37 @@ async def voice_agent(
         with open(temp_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
         
-        # Step 1: Speech to Text (Groq Whisper)
+        # Mapping frontend/custom language inputs to valid Whisper ISO codes if needed
+        whisper_lang_map = {
+            "en": "en",
+            "sw": "sw",
+            "am": "am",
+            "om": "om",  # Note: Whisper large-v3 supports Oromo natively
+            "pcm": "en", # Fallback Pidgin to English context if Whisper errors out
+            "tw": "en"   # Fallback Twi to English for transcription stabilization
+        }
+        
+        target_lang = whisper_lang_map.get(language, "en")
+        
+        # Step 1: Speech to Text (Groq Whisper) using a clean, supported code
         with open(temp_path, "rb") as audio_file:
             transcription = client.audio.transcriptions.create(
                 model="whisper-large-v3",
                 file=audio_file,
-                language=language,
+                language=target_lang, 
                 response_format="json"
             )
         
-        # user_text = transcription.text
-        # print(f"STT result: {user_text}")
-        
         user_text = transcription.text
-
-        try:
-            detected_language = detect(user_text)
-        except:
-            detected_language = language
-
         print(f"STT result: {user_text}")
-        print(f"Detected language: {detected_language}")
+        print(f"User Selected Language: {language}")
         
-        # Step 2: RAG answer (Groq Llama 3)
-        rag_result = ask_rag(user_text)
+        # Step 2: RAG answer - Pass the user text and the selected target language down 
+        # so your prompt context knows exactly what language it needs to answer in!
+        rag_result = ask_rag(user_text) # If ask_rag allows, you can modify it to take language
         
         return {
-            "detected_language": detected_language,
+            "detected_language": language, 
             "user_text": user_text,
             "answer": rag_result["answer"],
             "similarity_score": rag_result["score"],

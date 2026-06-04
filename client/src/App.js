@@ -4,7 +4,7 @@ import Header from './components/Header';
 import Footer from './components/Footer';
 import ChatDisplay from './components/ChatDisplay';
 
-const API_BASE_URL = 'https://healthbridge-africa.onrender.com';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 export default function App() {
   const [messages, setMessages] = useState([]);
