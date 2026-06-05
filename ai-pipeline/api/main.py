@@ -19,6 +19,8 @@ from langdetect import detect
 from tts.speak import text_to_speech
 from openai import OpenAI
 
+from embeddings.rag import ask as rag_ask
+from embeddings.search import search
 
 # Make sure rag/ is importable
 # sys.path.insert(0, os.path.dirname(__file__))
@@ -239,3 +241,29 @@ async def voice_chat(
     finally:
         if os.path.exists(temp_path):
             os.remove(temp_path)
+            
+    
+
+class SearchRequest(BaseModel):
+    question: str
+
+@app.post("/search")
+async def search_endpoint(data: SearchRequest):
+    """Semantic search — returns top 3 chunks from pgvector."""
+    try:
+        chunks = search(data.question, top_k=3)
+        return {
+            "question": data.question,
+            "chunks":   chunks
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/embed")
+async def embed_endpoint(data: SearchRequest):
+    """Full RAG — search pgvector + Groq Llama answer."""
+    try:
+        result = rag_ask(data.question)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
