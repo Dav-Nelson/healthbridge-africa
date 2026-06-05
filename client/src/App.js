@@ -109,6 +109,17 @@ export default function App() {
     }
   };
 
+  // --- NEW TRANSLATION LOGIC ---
+  const inputTranslations = {
+    English: { placeholder: "Type your health question...", recording: "Listening..." },
+    Pidgin: { placeholder: "Type your health question...", recording: "I dey listen..." },
+    Swahili: { placeholder: "Andika swali lako la afya...", recording: "Inasikiliza..." },
+    Oromo: { placeholder: "Gaaffii fayyaa kee barreessi...", recording: "Dhaggeeffachaa jira..." },
+    Twi: { placeholder: "Kyerɛw wo apɔwmuden asɛm...", recording: "Mretie..." }
+  };
+
+  const tInput = inputTranslations[language] || inputTranslations.English;
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
       <Header language={language} setLanguage={setLanguage} />
@@ -141,7 +152,8 @@ export default function App() {
               type="text"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              placeholder={isRecording ? "Listening..." : "Type your health question..."}
+              // --- UPDATED PLACEHOLDER TO USE TRANSLATIONS ---
+              placeholder={isRecording ? tInput.recording : tInput.placeholder}
               disabled={isRecording || isLoading}
               className="flex-grow p-4 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none transition-all disabled:opacity-50"
             />
@@ -157,7 +169,8 @@ export default function App() {
         </div>
       </main>
 
-      <Footer />
+      {/* --- PASSED LANGUAGE TO FOOTER --- */}
+      <Footer language={language} />
     </div>
   );
 }
