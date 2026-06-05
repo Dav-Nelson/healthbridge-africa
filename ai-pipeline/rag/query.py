@@ -62,14 +62,11 @@ def search_documents(question: str, top_k: int = 3) -> list:
     return scored[:top_k]
 
 
-def ask_rag(question: str) -> dict:
-    """Full RAG: search knowledge base, then answer with Groq Llama 3.
-    
-    """
+def ask_rag(question: str, language: str = "English") -> dict:
+    """Full RAG: search knowledge base, then answer with Groq Llama 3 in the target language."""
     
     top_chunks = search_documents(question, top_k=3)
     
-    # ✅ Fix: Check if top_chunks is empty BEFORE accessing index 0
     if not top_chunks:
         return {
             "answer": "I don't have verified information on that. Please consult a healthcare provider.",
@@ -92,32 +89,31 @@ def ask_rag(question: str) -> dict:
             "sources": []
         }
     
-    # Build context from top chunks
     context_parts = []
     for chunk in top_chunks:
         context_parts.append(
             f"[Source: {chunk.get('source', 'Health Document')}]\n{chunk['text']}"
         )
     context = "\n\n".join(context_parts)
-    
     context = context[:6000]
     
-    # Call Groq (Llama 3) — fast, free, cloud-based
+    # Dynamic language mapping to guide Llama 3 precisely
+    system_instruction = (
+        f"You are HealthBridge Africa's health information assistant.\n"
+        f"CRITICAL: You MUST respond entirely in the following language/dialect: {language}.\n"
+        f"Translate the health insights accurately into the tone and style of {language} while keeping the medical facts identical.\n"
+        f"Use ONLY the supplied context. Never diagnose diseases. Never prescribe medication. "
+        f"Never invent medical information. If the answer is not in the context, say so clearly. "
+        f"Always recommend professional medical care when symptoms are severe or persistent. "
+        f"Keep responses simple and easy to understand."
+    )
+    
     response = client.chat.completions.create(
         model="llama-3.3-70b-versatile",
         messages=[
             {
                 "role": "system",
-                "content": (
-                    "You are HealthBridge Africa's health information assistant. "
-                    "Use ONLY the supplied context. "
-                    "Never diagnose diseases. "
-                    "Never prescribe medication. "
-                    "Never invent medical information. "
-                    "If the answer is not in the context, say so clearly. "
-                    "Always recommend professional medical care when symptoms are severe or persistent. "
-                    "Keep responses simple and easy to understand."
-                )
+                "content": system_instruction
             },
             {
                 "role": "user",
@@ -125,14 +121,14 @@ def ask_rag(question: str) -> dict:
             }
         ],
         max_tokens=500,
-        temperature=0.3   # Low temperature = more factual, less creative
+        temperature=0.3  
     )
     
     return {
         "answer": response.choices[0].message.content,
         "context": context,
         "score": round(top_chunks[0]["score"], 4),
-        "sources": list(set([c.get("source", "unknown") for c in top_chunks])) # ✅ Deduplicated sources list
+        "sources": list(set([c.get("source", "unknown") for c in top_chunks]))
     }
 
 
