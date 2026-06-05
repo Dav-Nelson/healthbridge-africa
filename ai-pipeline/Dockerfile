@@ -12,6 +12,9 @@ WORKDIR /app
 
 # 4. Copy requirements and install dependencies
 COPY requirements.txt .
+# Install setuptools first to provide pkg_resources for building wheels
+RUN pip install --no-cache-dir --upgrade pip setuptools
+# Now install the project requirements
 RUN pip install --no-cache-dir -r requirements.txt
 
 # 5. Copy the rest of the application code
