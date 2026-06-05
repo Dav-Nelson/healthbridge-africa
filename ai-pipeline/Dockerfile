@@ -1,5 +1,5 @@
 # 1. Use an official lightweight Python runtime
-FROM python:3.10-slim
+FROM python:3.11-slim
 
 # 2. Install system dependencies needed for audio processing (ffmpeg)
 RUN apt-get update && apt-get install -y \
