@@ -47,7 +47,8 @@ router.post('/chat', upload.single('audio'), async (req, res) => {
       success: true,
       transcribed: response.data.user_text,
       response: response.data.answer,
-      audioPath: response.data.audio_path,
+      // FIX: Changed from audio_path to audio_file to match Python's response payload key
+      audioPath: response.data.audio_file, 
       sources: response.data.sources,
       disclaimer: 'This is not medical advice. Please see a doctor for diagnosis and treatment.'
     });
@@ -57,24 +58,19 @@ router.post('/chat', upload.single('audio'), async (req, res) => {
   }
 });
 
-// =========================================================================
-// POST /api/voice/speak (Proxies requests directly to the Python FastAPI pipeline)
-// =========================================================================
+// POST /api/voice/speak
 router.post('/speak', async (req, res) => {
   try {
     const pipelineBaseUrl = process.env.AI_PIPELINE_URL || 'https://healthbridge-africa.onrender.com';
     
-    // Direct link to the root-level /speak route we just implemented on the Python service
     const pythonResponse = await axios.post(`${pipelineBaseUrl}/speak`, req.body, {
-      responseType: 'arraybuffer', // Keeps raw binary audio chunk blocks stable
+      responseType: 'arraybuffer',
       headers: { 'Content-Type': 'application/json' }
     });
 
-    // Enforce correct streaming content headers back to the React UI context layer
     const contentType = pythonResponse.headers['content-type'] || 'audio/mpeg';
     res.setHeader('Content-Type', contentType);
 
-    // Ship the binary buffer straight to the frontend ResponsePlayer
     return res.send(Buffer.from(pythonResponse.data));
 
   } catch (error) {
