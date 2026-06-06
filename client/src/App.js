@@ -6,13 +6,14 @@ import ChatDisplay from './components/ChatDisplay';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
-// ISO Language mapping layer to match your backend expectations
+// ISO Language mapping layer supporting Amharic
 const LANGUAGE_ISO_MAP = {
   'english': 'en',
   'pidgin': 'pcm',
   'swahili': 'sw',
   'oromo': 'om',
-  'twi': 'tw'
+  'twi': 'tw',
+  'amharic': 'am'
 };
 
 export default function App() {
@@ -20,12 +21,11 @@ export default function App() {
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
-  const [language, setLanguage] = useState('English'); // Holds display strings like 'Swahili'
+  const [language, setLanguage] = useState('English'); 
 
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
 
-  // Helper helper to get clean short codes for the API layer
   const getCleanLanguageCode = () => {
     const currentLang = language.toLowerCase();
     return LANGUAGE_ISO_MAP[currentLang] || currentLang;
@@ -39,7 +39,7 @@ export default function App() {
     setIsLoading(true);
 
     try {
-      const targetCode = getCleanLanguageCode(); // Resolves to 'sw', 'pcm', etc.
+      const targetCode = getCleanLanguageCode();
 
       const response = await fetch(`${API_BASE_URL}/api/chat`, {
         method: 'POST',
@@ -135,13 +135,11 @@ export default function App() {
         <ChatDisplay 
           messages={messages} 
           isLoading={isLoading} 
-          language={getCleanLanguageCode()} // Pass clean code ('sw', 'pcm') to ResponsePlayer
+          language={getCleanLanguageCode()} 
         />
 
-        {/* Input Area (VoiceRecorder & Text) */}
         <div className="bg-white rounded-b-2xl shadow-sm border border-slate-200 p-4">
           <form onSubmit={handleTextSubmit} className="flex items-center gap-3">
-            
             <button
               type="button"
               onClick={isRecording ? stopRecording : startRecording}

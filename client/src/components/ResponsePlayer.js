@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Volume2, Square, Loader2 } from 'lucide-react';
 
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+
 export default function ResponsePlayer({ text, language }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -15,7 +17,8 @@ export default function ResponsePlayer({ text, language }) {
 
     setIsLoading(true);
     try {
-      const response = await fetch('https://healthbridge-africa.onrender.com/api/voice/speak', {
+      // FIX: Route through API_BASE_URL to prevent CORS/direct stream blocks
+      const response = await fetch(`${API_BASE_URL}/api/voice/speak`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text, language: language ? language.toLowerCase() : 'en' }),
@@ -26,35 +29,31 @@ export default function ResponsePlayer({ text, language }) {
       const contentType = response.headers.get('content-type') || '';
       let audioUrl = '';
 
-      // Universal Parsing Layer
       if (contentType.includes('application/json')) {
-        // Option A: Backend responded with JSON wrapped Base64
         const data = await response.json();
         const rawBase64 = data.audio || data.audioContent || data.data;
         if (!rawBase64) throw new Error('JSON structure did not contain audio data');
         audioUrl = `data:audio/mp3;base64,${rawBase64}`;
       } else {
-        // Option B: Backend responded with a raw direct binary stream/blob
         const audioBlob = await response.blob();
         if (audioBlob.size === 0) throw new Error('Received an empty audio blob file');
         audioUrl = URL.createObjectURL(audioBlob);
       }
 
-      // Initialize HTML5 Audio playback context securely
       const audio = new Audio();
       audio.src = audioUrl;
       
       audio.onended = () => {
         setIsPlaying(false);
         if (!contentType.includes('application/json')) {
-          URL.revokeObjectURL(audioUrl); // Clean up memory if blob was used
+          URL.revokeObjectURL(audioUrl);
         }
       };
 
       audio.onerror = (e) => {
         console.error("Browser media playback engine failed to decode audio source:", e);
         setIsPlaying(false);
-        alert("Audio formatting issue. Please try again or check server codecs.");
+        alert("Audio rendering issue. Please check device output codec.");
       };
 
       setAudioElement(audio);
@@ -63,7 +62,7 @@ export default function ResponsePlayer({ text, language }) {
       const playPromise = audio.play();
       if (playPromise !== undefined) {
         playPromise.catch(err => {
-          console.error("Playback interrupted or blocked by browser autoplay policy:", err);
+          console.error("Playback blocked by browser autoplay rules:", err);
           setIsPlaying(false);
         });
       }
