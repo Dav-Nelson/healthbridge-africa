@@ -264,25 +264,39 @@ async def speak(data: SpeakRequest):
         if not data.text:
             raise HTTPException(status_code=400, detail="Text payload parameter cannot be empty")
             
-        # FIX: Translate incoming language codes (e.g., 'pcm', 'tw') into full 
-        # descriptive strings ('Nigerian Pidgin', 'Twi') to match text_to_speech expectations.
         target_lang_name = get_full_language_name(data.language)
         
         # Synthesize audio file name via internal pipeline processing modules
         audio_filename = text_to_speech(data.text, target_lang_name)
         
-        # Check standard static location fallback structures
-        static_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "static"))
+        # Safe directory checks - fall back safely to standard project root locations
+        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+        static_dir = os.path.join(base_dir, "static")
+        
+        # Check static folder first
         file_path = os.path.join(static_dir, audio_filename)
         
         if not os.path.exists(file_path):
-            # Alternative: direct relative resolution path check
-            file_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", audio_filename))
+            # Check project root directly
+            file_path = os.path.join(base_dir, audio_filename)
+            
+        if not os.path.exists(file_path):
+            # Check relative local working folder context
+            file_path = os.path.abspath(audio_filename)
             
         if os.path.exists(file_path):
             return FileResponse(file_path, media_type="audio/mpeg", filename=audio_filename)
             
-        raise HTTPException(status_code=404, detail="Audio pipeline failed to verify temporary asset generation on disk")
+        # Catch-all: If it's a string containing the raw data path from text_to_speech
+        if os.path.exists(str(audio_filename)):
+            return FileResponse(str(audio_filename), media_type="audio/mpeg")
+            
+        raise HTTPException(
+            status_code=404, 
+            detail=f"Audio pipeline asset resolution mismatch. File not found on disk context path: {audio_filename}"
+        )
         
     except Exception as e:
+        # This will print the EXACT internal python failure cause to your Render logs!
+        print(f"CRITICAL TTS /speak failure exception: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
