@@ -31,14 +31,14 @@ router.post('/chat', upload.single('audio'), async (req, res) => {
   try {
     const selectedLanguage = req.body.language || 'en';
 
-    // MEMORY OPTIMIZATION: Use a native Blob wrapper around the buffer without double cloning memory
     const formData = new FormData();
     const audioBlob = new Blob([req.file.buffer], { type: req.file.mimetype });
     
     formData.append('file', audioBlob, req.file.originalname || 'audio.wav');
     formData.append('language', selectedLanguage);
 
-    const pipelineBaseUrl = process.env.AI_PIPELINE_URL || 'http://127.0.0.1:8000';
+    // FIXED fallback to point directly to your live production Python pipeline instance
+    const pipelineBaseUrl = process.env.AI_PIPELINE_URL || 'https://healthbridge-africa.onrender.com';
     const response = await axios.post(`${pipelineBaseUrl}/voice-chat`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
@@ -49,12 +49,12 @@ router.post('/chat', upload.single('audio'), async (req, res) => {
       success: true,
       transcribed: response.data.user_text,
       response: response.data.answer,
-      audioPath: response.data.audio_file, // Mapped accurately to the Python backend key name
+      audioPath: response.data.audio_file, 
       sources: response.data.sources,
       disclaimer: 'This is not medical advice. Please see a doctor for diagnosis and treatment.'
     });
   } catch (error) {
-    console.error('Voice chat error:', error.response?.data || error.message);
+    console.error('Voice chat connection failure:', error.response?.data || error.message);
     res.status(500).json({ error: 'Voice chat failed', message: error.message });
   }
 });
