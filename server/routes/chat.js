@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const axios = require('axios'); // Added axios to make HTTP requests to the AI pipeline
+const axios = require('axios');
 
 // POST /api/chat
 router.post('/', async (req, res) => {
@@ -11,12 +11,15 @@ router.post('/', async (req, res) => {
   }
 
   try {
-    // Define the AI pipeline URL. Fallback to localhost:8000 if env variable isn't loaded yet.
-    const AI_PIPELINE_URL = process.env.AI_PIPELINE_URL || 'http://127.0.0.1:8000';
+    // Trim slashes and use your explicit live pipeline URL if the environment variable isn't configured on Render yet
+    const AI_PIPELINE_URL = process.env.AI_PIPELINE_URL 
+      ? process.env.AI_PIPELINE_URL.replace(/\/$/, "")
+      : 'https://healthbridge-africa-ai-pipeline.onrender.com';
 
-    // Forward the query directly to Ibsa's verified Python RAG endpoint
+    // Forward BOTH the question and the language code down to the Python RAG endpoint
     const aiPipelineResponse = await axios.post(`${AI_PIPELINE_URL}/ask`, {
-      question: query
+      question: query,
+      language: language || 'en'
     });
 
     // Extract data sent back from the Python FastAPI server
