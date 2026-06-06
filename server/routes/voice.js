@@ -37,12 +37,14 @@ router.post('/chat', upload.single('audio'), async (req, res) => {
     formData.append('file', audioBlob, req.file.originalname || 'audio.wav');
     formData.append('language', selectedLanguage);
 
-    // FIXED fallback to point directly to your live production Python pipeline instance
     const pipelineBaseUrl = process.env.AI_PIPELINE_URL || 'https://healthbridge-africa.onrender.com';
+    
+    // Added 15s timeout safeguard for the full STT -> RAG pipeline
     const response = await axios.post(`${pipelineBaseUrl}/voice-chat`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
-      }
+      },
+      timeout: 15000
     });
 
     res.json({
@@ -64,15 +66,30 @@ router.post('/speak', async (req, res) => {
   try {
     const pipelineBaseUrl = process.env.AI_PIPELINE_URL || 'https://healthbridge-africa.onrender.com';
     
+    // Using responseType: 'text' lets us capture either JSON or raw binary without corruption
     const pythonResponse = await axios.post(`${pipelineBaseUrl}/speak`, req.body, {
-      responseType: 'arraybuffer',
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' },
+      responseType: 'text',
+      timeout: 15000 
     });
 
+    // Try parsing as JSON to find our base64 payload object
+    try {
+      const jsonData = JSON.parse(pythonResponse.data);
+      if (jsonData && jsonData.audio) {
+        const audioBuffer = Buffer.from(jsonData.audio, 'base64');
+        res.setHeader('Content-Type', 'audio/mpeg');
+        res.setHeader('Content-Length', audioBuffer.length);
+        return res.send(audioBuffer);
+      }
+    } catch (e) {
+      // If parsing fails, it's a raw binary file fallback from FastAPI
+    }
+
+    // Binary file stream fallback execution
     const contentType = pythonResponse.headers['content-type'] || 'audio/mpeg';
     res.setHeader('Content-Type', contentType);
-
-    return res.send(Buffer.from(pythonResponse.data));
+    return res.send(Buffer.from(pythonResponse.data, 'binary'));
 
   } catch (error) {
     console.error('Voice proxy /speak structural failure:', error.response?.data || error.message);
