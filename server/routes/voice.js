@@ -24,24 +24,18 @@ router.post('/transcribe', upload.single('audio'), async (req, res) => {
 });
 
 // POST /api/voice/chat
-// Full voice pipeline - transcribe + generate response + TTS fallback path
 router.post('/chat', upload.single('audio'), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'Audio file is required' });
   }
   try {
-    // 1. Convert the file buffer into a standard Blob object
     const audioBlob = new Blob([req.file.buffer], { type: req.file.mimetype });
-    
-    // 2. Extract the user language from the frontend request (defaults to 'en')
     const selectedLanguage = req.body.language || 'en';
 
-    // 3. Pack everything cleanly into a standard form object
     const formData = new FormData();
     formData.append('file', audioBlob, req.file.originalname || 'audio.wav');
     formData.append('language', selectedLanguage);
 
-    // 4. Send it directly to the Python FastAPI server on the updated /voice-chat route
     const pipelineBaseUrl = process.env.AI_PIPELINE_URL || 'http://127.0.0.1:8000';
     const response = await axios.post(`${pipelineBaseUrl}/voice-chat`, formData, {
       headers: {
@@ -49,7 +43,6 @@ router.post('/chat', upload.single('audio'), async (req, res) => {
       }
     });
 
-    // 5. Send the complete AI pipeline data and audio path back to the frontend UI
     res.json({
       success: true,
       transcribed: response.data.user_text,
@@ -61,6 +54,36 @@ router.post('/chat', upload.single('audio'), async (req, res) => {
   } catch (error) {
     console.error('Voice chat error:', error.response?.data || error.message);
     res.status(500).json({ error: 'Voice chat failed', message: error.message });
+  }
+});
+
+// =========================================================================
+// ADDED: POST /api/voice/speak (Proxies requests to the Python AI pipeline)
+// =========================================================================
+router.post('/speak', async (req, res) => {
+  try {
+    // Falls back to render URL if the local AI_PIPELINE_URL env variable isn't specified
+    const pipelineBaseUrl = process.env.AI_PIPELINE_URL || 'https://healthbridge-africa.onrender.com';
+    
+    // Explicitly target the text-to-speech microservice path on your Python app
+    const pythonResponse = await axios.post(`${pipelineBaseUrl}/api/voice/speak`, req.body, {
+      responseType: 'arraybuffer', // Crucial: tells axios to preserve the raw binary chunk buffers
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+    // Pass the exact headers returned from python back to the React app
+    const contentType = pythonResponse.headers['content-type'] || 'audio/mp3';
+    res.setHeader('Content-Type', contentType);
+
+    // Ship the binary buffer payload to the frontend
+    return res.send(Buffer.from(pythonResponse.data));
+
+  } catch (error) {
+    console.error('Voice proxy /speak structural failure:', error.response?.data || error.message);
+    return res.status(500).json({ 
+      error: 'Proxy text-to-speech generation failure', 
+      message: error.message 
+    });
   }
 });
 
