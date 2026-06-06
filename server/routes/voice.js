@@ -16,10 +16,10 @@ router.post('/transcribe', upload.single('audio'), async (req, res) => {
   }
   try {
     const text = await transcribeAudio(req.file.buffer, req.file.mimetype);
-    res.json({ success: true, text });
+    return res.json({ success: true, text });
   } catch (error) {
     console.error('Transcription error:', error.message);
-    res.status(500).json({ error: 'Transcription failed', message: error.message });
+    return res.status(500).json({ error: 'Transcription failed', message: error.message });
   }
 });
 
@@ -31,6 +31,7 @@ router.post('/chat', upload.single('audio'), async (req, res) => {
   try {
     const selectedLanguage = req.body.language || 'en';
 
+    // Create a fresh FormData boundary instance for every isolated request
     const formData = new FormData();
     const audioBlob = new Blob([req.file.buffer], { type: req.file.mimetype });
     
@@ -39,7 +40,6 @@ router.post('/chat', upload.single('audio'), async (req, res) => {
 
     const pipelineBaseUrl = process.env.AI_PIPELINE_URL || 'https://healthbridge-africa.onrender.com';
     
-    // Added 15s timeout safeguard for the full STT -> RAG pipeline
     const response = await axios.post(`${pipelineBaseUrl}/voice-chat`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
@@ -47,17 +47,18 @@ router.post('/chat', upload.single('audio'), async (req, res) => {
       timeout: 15000
     });
 
-    res.json({
+    // Ensure we explicitly return the JSON structure cleanly to prevent lingering headers
+    return res.json({
       success: true,
-      transcribed: response.data.user_text,
-      response: response.data.answer,
-      audioPath: response.data.audio_file, 
-      sources: response.data.sources,
+      transcribed: response.data.user_text || '',
+      response: response.data.answer || '',
+      audioPath: response.data.audio_file || null, 
+      sources: response.data.sources || [],
       disclaimer: 'This is not medical advice. Please see a doctor for diagnosis and treatment.'
     });
   } catch (error) {
     console.error('Voice chat connection failure:', error.response?.data || error.message);
-    res.status(500).json({ error: 'Voice chat failed', message: error.message });
+    return res.status(500).json({ error: 'Voice chat failed', message: error.message });
   }
 });
 
@@ -66,14 +67,12 @@ router.post('/speak', async (req, res) => {
   try {
     const pipelineBaseUrl = process.env.AI_PIPELINE_URL || 'https://healthbridge-africa.onrender.com';
     
-    // Using responseType: 'text' lets us capture either JSON or raw binary without corruption
     const pythonResponse = await axios.post(`${pipelineBaseUrl}/speak`, req.body, {
       headers: { 'Content-Type': 'application/json' },
       responseType: 'text',
       timeout: 15000 
     });
 
-    // Try parsing as JSON to find our base64 payload object
     try {
       const jsonData = JSON.parse(pythonResponse.data);
       if (jsonData && jsonData.audio) {
@@ -83,10 +82,9 @@ router.post('/speak', async (req, res) => {
         return res.send(audioBuffer);
       }
     } catch (e) {
-      // If parsing fails, it's a raw binary file fallback from FastAPI
+      // Data was not JSON, drop down to raw binary logic
     }
 
-    // Binary file stream fallback execution
     const contentType = pythonResponse.headers['content-type'] || 'audio/mpeg';
     res.setHeader('Content-Type', contentType);
     return res.send(Buffer.from(pythonResponse.data, 'binary'));
