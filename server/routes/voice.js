@@ -58,56 +58,26 @@ router.post('/chat', upload.single('audio'), async (req, res) => {
 });
 
 // =========================================================================
-// POST /api/voice/speak (Proxies requests securely to the Python AI pipeline)
+// POST /api/voice/speak (Proxies requests directly to the Python FastAPI pipeline)
 // =========================================================================
 router.post('/speak', async (req, res) => {
   try {
     const pipelineBaseUrl = process.env.AI_PIPELINE_URL || 'https://healthbridge-africa.onrender.com';
     
-    // FIX: Swapped out /api/voice/speak for /api/voice/speak fallback routes 
-    // to match standard root-level endpoint paths on the FastAPI pipeline
-    const pythonResponse = await axios.post(`${pipelineBaseUrl}/api/voice/speak`, req.body, {
-      responseType: 'arraybuffer', 
+    // Direct link to the root-level /speak route we just implemented on the Python service
+    const pythonResponse = await axios.post(`${pipelineBaseUrl}/speak`, req.body, {
+      responseType: 'arraybuffer', // Keeps raw binary audio chunk blocks stable
       headers: { 'Content-Type': 'application/json' }
     });
 
-    const contentType = pythonResponse.headers['content-type'] || 'audio/mp3';
+    // Enforce correct streaming content headers back to the React UI context layer
+    const contentType = pythonResponse.headers['content-type'] || 'audio/mpeg';
     res.setHeader('Content-Type', contentType);
 
+    // Ship the binary buffer straight to the frontend ResponsePlayer
     return res.send(Buffer.from(pythonResponse.data));
 
   } catch (error) {
-    // If the python app is hosting speak directly on root (/api/voice/speak vs /voice/speak fallback handling)
-    if (error.response && error.response.status === 404) {
-      try {
-        const pipelineBaseUrl = process.env.AI_PIPELINE_URL || 'https://healthbridge-africa.onrender.com';
-        
-        // Secondary Fallback Attempt: strip the '/api' layout prefix to look for root mapping
-        const fallbackResponse = await axios.post(`${pipelineBaseUrl}/voice/speak`, req.body, {
-          responseType: 'arraybuffer',
-          headers: { 'Content-Type': 'application/json' }
-        });
-
-        const contentType = fallbackResponse.headers['content-type'] || 'audio/mp3';
-        res.setHeader('Content-Type', contentType);
-        return res.send(Buffer.from(fallbackResponse.data));
-
-      } catch (fallbackError) {
-        console.error('Both core and fallback TTS paths returned 404. Checking root /speak...');
-        try {
-          const pipelineBaseUrl = process.env.AI_PIPELINE_URL || 'https://healthbridge-africa.onrender.com';
-          const absoluteFallback = await axios.post(`${pipelineBaseUrl}/speak`, req.body, {
-            responseType: 'arraybuffer',
-            headers: { 'Content-Type': 'application/json' }
-          });
-          res.setHeader('Content-Type', absoluteFallback.headers['content-type'] || 'audio/mp3');
-          return res.send(Buffer.from(absoluteFallback.data));
-        } catch (finalError) {
-          console.error('All endpoint path variants exhausted on Python service layer.');
-        }
-      }
-    }
-
     console.error('Voice proxy /speak structural failure:', error.response?.data || error.message);
     return res.status(500).json({ 
       error: 'Proxy text-to-speech generation failure', 
