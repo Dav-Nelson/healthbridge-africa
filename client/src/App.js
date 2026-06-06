@@ -6,42 +6,56 @@ import ChatDisplay from './components/ChatDisplay';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
+// ISO Language mapping layer to match your backend expectations
+const LANGUAGE_ISO_MAP = {
+  'english': 'en',
+  'pidgin': 'pcm',
+  'swahili': 'sw',
+  'oromo': 'om',
+  'twi': 'tw'
+};
+
 export default function App() {
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
-  const [language, setLanguage] = useState('English');
+  const [language, setLanguage] = useState('English'); // Holds display strings like 'Swahili'
 
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
 
+  // Helper helper to get clean short codes for the API layer
+  const getCleanLanguageCode = () => {
+    const currentLang = language.toLowerCase();
+    return LANGUAGE_ISO_MAP[currentLang] || currentLang;
+  };
+
   const handleSendMessage = async (textToProcess) => {
     if (!textToProcess.trim()) return;
 
-    // FIX: Safely append user message using functional state
     setMessages(prev => [...prev, { sender: 'user', text: textToProcess }]);
     setInputValue('');
     setIsLoading(true);
 
     try {
+      const targetCode = getCleanLanguageCode(); // Resolves to 'sw', 'pcm', etc.
+
       const response = await fetch(`${API_BASE_URL}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           query: textToProcess, 
-          language: language.toLowerCase() 
+          language: targetCode 
         }),
       });
 
       if (!response.ok) throw new Error('API response failed');
       const data = await response.json();
       
-      // FIX: Safely append bot message using functional state
       setMessages(prev => [...prev, { sender: 'bot', text: data.response }]);
     } catch (error) {
       console.error("Chat Error:", error);
-      // FIX: Safely append error message using functional state
       setMessages(prev => [...prev, { sender: 'bot', text: "Sorry, I am having trouble connecting to the server right now." }]);
     } finally {
       setIsLoading(false);
@@ -106,7 +120,6 @@ export default function App() {
       }
     } catch (error) {
       console.error("Transcription Error:", error);
-      // FIX: Safely append error message using functional state
       setMessages(prev => [...prev, { sender: 'bot', text: "Sorry, I couldn't process your voice message." }]);
     } finally {
       setIsLoading(false);
@@ -122,7 +135,7 @@ export default function App() {
         <ChatDisplay 
           messages={messages} 
           isLoading={isLoading} 
-          language={language} 
+          language={getCleanLanguageCode()} // Pass clean code ('sw', 'pcm') to ResponsePlayer
         />
 
         {/* Input Area (VoiceRecorder & Text) */}
