@@ -234,15 +234,16 @@ async def voice_chat(
         rag_result = ask_rag(user_text, language=target_lang_name)
 
         # Step 3: Text-To-Speech Synthesis processing native response string
-        audio_response = text_to_speech(
-            rag_result["answer"],
-            language
-        )
+        audio_response = text_to_speech(rag_result["answer"], target_lang_name)
+
+        # Normalize the audio format string so the frontend doesn't crash
+        raw_audio = audio_response.split(",")[1] if (isinstance(audio_response, str) and "data:audio/" in audio_response) else audio_response
 
         return {
             "user_text": user_text,
             "answer": rag_result["answer"],
-            "audio_file": audio_response,
+            "audio_file": audio_response, # Kept for backward compatibility match
+            "audio": raw_audio,           # Clean explicit Base64 payload reference
             "sources": rag_result.get("sources", [])
         }
 
@@ -258,7 +259,7 @@ async def voice_chat(
 async def speak(data: SpeakRequest):
     """
     Standalone Text-to-Speech Engine Endpoint.
-    Converts plain text answers directly into binary audio byte stream arrays on request.
+    Delivers base64 or file data dynamically back to client architecture.
     """
     try:
         if not data.text:
@@ -266,37 +267,36 @@ async def speak(data: SpeakRequest):
             
         target_lang_name = get_full_language_name(data.language)
         
-        # Synthesize audio file name via internal pipeline processing modules
-        audio_filename = text_to_speech(data.text, target_lang_name)
+        # Synthesize audio data via internal pipeline processing modules
+        audio_result = text_to_speech(data.text, target_lang_name)
         
-        # Safe directory checks - fall back safely to standard project root locations
+        # FIX: If the TTS engine returns a raw base64 URI stream directly, return it as JSON immediately
+        if isinstance(audio_result, str) and audio_result.startswith("data:audio/"):
+            # Extract raw base64 body if it contains the metadata header prefix
+            raw_base64 = audio_result.split(",")[1] if "," in audio_result else audio_result
+            return {
+                "status": "success",
+                "audio": raw_base64
+            }
+            
+        # Fallback directory disk checks if a standard short filename configuration string is returned
         base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
         static_dir = os.path.join(base_dir, "static")
         
-        # Check static folder first
-        file_path = os.path.join(static_dir, audio_filename)
-        
+        file_path = os.path.join(static_dir, str(audio_result))
         if not os.path.exists(file_path):
-            # Check project root directly
-            file_path = os.path.join(base_dir, audio_filename)
-            
+            file_path = os.path.join(base_dir, str(audio_result))
         if not os.path.exists(file_path):
-            # Check relative local working folder context
-            file_path = os.path.abspath(audio_filename)
+            file_path = os.path.abspath(str(audio_result))
             
         if os.path.exists(file_path):
-            return FileResponse(file_path, media_type="audio/mpeg", filename=audio_filename)
-            
-        # Catch-all: If it's a string containing the raw data path from text_to_speech
-        if os.path.exists(str(audio_filename)):
-            return FileResponse(str(audio_filename), media_type="audio/mpeg")
+            return FileResponse(file_path, media_type="audio/mpeg", filename=str(audio_result))
             
         raise HTTPException(
             status_code=404, 
-            detail=f"Audio pipeline asset resolution mismatch. File not found on disk context path: {audio_filename}"
+            detail=f"Audio pipeline asset resolution mismatch. File not found on disk context path: {audio_result}"
         )
         
     except Exception as e:
-        # This will print the EXACT internal python failure cause to your Render logs!
         print(f"CRITICAL TTS /speak failure exception: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
