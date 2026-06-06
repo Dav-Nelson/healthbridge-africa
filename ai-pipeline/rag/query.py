@@ -1,71 +1,33 @@
-# ai-pipeline/rag/query.py
-"""
-RAG query pipeline:
-1. Embed the user question (sentence-transformers, local)
-2. Search vector_store.json for best matching chunks
-3. Send question + context to Groq (Llama 3) for grounded answer
-"""
-import os
-import json
-import numpy as np
-from groq import Groq
-from dotenv import load_dotenv
-
-# load_dotenv(dotenv_path="ai-pipeline/.env")
-load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
-
-
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-
-# Load embedding model once (reused across calls)
-from sentence_transformers import SentenceTransformer
-_embed_model = SentenceTransformer("all-MiniLM-L6-v2")
-
-
-def embed_text(text: str) -> list:
-    return _embed_model.encode(text).tolist()
-
-
-def cosine_similarity(a, b) -> float:
-    a, b = np.array(a), np.array(b)
-    return float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b)))
-
-
-def search_documents(question: str, top_k: int = 3) -> list:
-    """Find the top_k most relevant chunks for a question."""
-    
-    store_path = os.path.join(
-        os.path.dirname(__file__),
-        "..",
-        "docs",
-        "vector_store.json"
-    )
-    
-    if not os.path.exists(store_path):
-        raise FileNotFoundError(
-            "vector_store.json not found. Run ingest.py first."
-        )
-    
-    with open(store_path, "r", encoding="utf-8") as f:
-        documents = json.load(f)
-    
-    query_embedding = embed_text(question)
-    
-    # Score every chunk
-    scored = []
-    for doc in documents:
-        score = cosine_similarity(query_embedding, doc["embedding"])
-        scored.append({**doc, "score": score})
-    
-    # Return top_k results sorted by score
-    scored.sort(key=lambda x: x["score"], reverse=True)
-    return scored[:top_k]
-
-
 def ask_rag(question: str, language: str = "English") -> dict:
     """Full RAG: search knowledge base, then answer with Groq Llama 3 in the target language."""
     
-    top_chunks = search_documents(question, top_k=3)
+    # --- CROSS-LINGUAL ALIGNMENT FIX ---
+    # If the question isn't in English, get a quick English translation for vector mapping
+    search_query = question
+    if language.lower() != "english":
+        try:
+            translation_response = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[
+                    {
+                        "role": "system", 
+                        "content": "You are a professional medical translator. Translate the user query strictly into English. Return ONLY the plain English translation, nothing else."
+                    },
+                    {"role": "user", "content": question}
+                ],
+                max_tokens=100,
+                temperature=0.0
+            )
+            search_query = translation_response.choices[0].message.content.strip()
+            # Optional tracking log for your backend logs:
+            print(f"[RAG Translation Log] Original: '{question}' -> Search Term: '{search_query}'")
+        except Exception as e:
+            print(f"Translation preprocessing failed: {e}")
+            search_query = question # Fallback to original if API error
+    # ------------------------------------
+
+    # Now we pass the English search_query to hit your English markdown data chunks perfectly
+    top_chunks = search_documents(search_query, top_k=3)
     
     if not top_chunks:
         return {
@@ -117,7 +79,8 @@ def ask_rag(question: str, language: str = "English") -> dict:
             },
             {
                 "role": "user",
-                "content": f"Context:\n{context}\n\nQuestion: {question}"
+                # Pass the original user question so it responds directly to their dialect input context
+                "content": f"Context:\n{context}\n\nQuestion: {question}" 
             }
         ],
         max_tokens=500,
@@ -130,7 +93,6 @@ def ask_rag(question: str, language: str = "English") -> dict:
         "score": round(top_chunks[0]["score"], 4),
         "sources": list(set([c.get("source", "unknown") for c in top_chunks]))
     }
-
 
 if __name__ == "__main__":
     result = ask_rag("What are the symptoms of malaria and when should I see a doctor?")
