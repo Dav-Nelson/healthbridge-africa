@@ -1,71 +1,83 @@
-from db import get_connection
-from embed import get_embedding
+from embeddings.db import get_connection
+from embeddings.embed import get_embedding
+
+KNOWN_DISEASES = [
+    "malaria", "hiv", "aids", "cholera",
+    "tuberculosis", "tb", "diarrhea",
+    "schistosomiasis", "trachoma", "typhoid",
+    "hypertension", "dengue", "malnutrition",
+]
+
+def detect_condition(question: str):
+    q = question.lower()
+    for disease in KNOWN_DISEASES:
+        if disease in q:
+            return disease
+    return None
 
 
-def search(question, top_k=8):
-    print(f"🔍 Searching for: {question}")
+def search(question: str, top_k: int = 5) -> list:
+    condition = detect_condition(question)
+    print(f"🔍 Searching: {question}")
+    print(f"   Detected condition: {condition}")
 
-    # Create embedding for question
     question_embedding = get_embedding(question)
 
-    # Convert embedding list into pgvector format
-    question_embedding_str = "[" + ",".join(
-        str(x) for x in question_embedding
+    # ✅ Force decimal notation — fixes scientific notation bug
+    embedding_str = "[" + ",".join(
+        f"{float(x):.8f}" for x in question_embedding
     ) + "]"
 
     conn = get_connection()
     cur = conn.cursor()
 
+    # ✅ Fixed SQL — exactly 4 %s, exactly 4 values
     cur.execute("""
         SELECT
             source,
             content,
             country,
-            1 - (embedding <=> %s::vector) AS similarity
+            condition,
+            (
+                1 - (embedding <=> %s::vector)
+                +
+                CASE
+                    WHEN %s IS NOT NULL
+                    AND LOWER(condition) LIKE '%%' || %s || '%%'
+                    THEN 0.30
+                    ELSE 0
+                END
+            ) AS similarity
         FROM health_documents
-        ORDER BY embedding <=> %s::vector
+        ORDER BY similarity DESC
         LIMIT %s;
     """, (
-        question_embedding_str,
-        question_embedding_str,
-        top_k
+        embedding_str,   # 1 → embedding <=>
+        condition,       # 2 → WHEN %s IS NOT NULL
+        condition,       # 3 → LIKE '%%' || %s || '%%'
+        top_k            # 4 → LIMIT %s
     ))
 
-    results = cur.fetchall()
-    print("\nRAW RESULTS")
-
-    # for row in results:
-    #     print(row[0], row[3])
-    for r in results:
-        print(f"Source: {r[0]}, Similarity: {r[3]:.4f}")
-
-    print(f"Rows returned: {len(results)}")
-
+    rows = cur.fetchall()
     cur.close()
     conn.close()
 
+    print(f"\nRAW RESULTS ({len(rows)} rows)")
     chunks = []
-
-    for source, content, country, similarity in results:
-
-        # Ignore extremely weak matches
-        # if similarity < 0.20:
-        #     continue
-
+    for source, content, country, condition_name, similarity in rows:
+        print(f"  [{float(similarity):.4f}] {source} — {condition_name}")
         chunks.append({
-            "source": source,
-            "content": content,
-            "country": country,
-            "similarity": round(similarity, 4)
+            "source":     source,
+            "content":    content,
+            "country":    country,
+            "condition":  condition_name,
+            "similarity": round(float(similarity), 4)
         })
 
     return chunks
 
 
 if __name__ == "__main__":
-
-    results = search(
-        # "What are symptoms of malaria?",
-        "What is HIV?",
-        top_k=8
-    )
+    for q in ["What are symptoms of malaria?", "What is HIV?", "how to fix a bicycle?"]:
+        print(f"\n{'='*50}")
+        results = search(q, top_k=3)

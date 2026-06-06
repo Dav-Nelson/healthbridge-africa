@@ -1,29 +1,25 @@
-import os
+import cohere
 from dotenv import load_dotenv
-from huggingface_hub import InferenceClient
+import os
 
-load_dotenv(
-    os.path.join(
-        os.path.dirname(__file__),
-        "..",
-        ".env"
+load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
+co = cohere.Client(os.getenv("COHERE_API_KEY"))
+
+def get_embedding(text: str) -> list:
+    """
+    Embed using Cohere.
+    Free: 1000 requests/month.
+    Returns 1024-dimensional vector.
+    """
+    response = co.embed(
+        texts=[text],
+        model="embed-english-v3.0",
+        input_type="search_document"
     )
-)
-
-HF_API_KEY = os.getenv("HF_API_KEY")
-
-client = InferenceClient(
-    provider="hf-inference",
-    api_key=HF_API_KEY
-)
+    return response.embeddings[0]
 
 
-def get_embedding(text):
-
-    embedding = client.feature_extraction(
-        text,
-        model="sentence-transformers/all-mpnet-base-v2"
-    )
-
-    # HuggingFace inference returns a NumPy array; convert to native Python list for psycopg2
-    return embedding[:768].tolist()
+if __name__ == "__main__":
+    vec = get_embedding("What are symptoms of malaria?")
+    print(f"✅ Dimensions: {len(vec)}")   # 1024
+    print(f"   First 5:    {vec[:5]}")
