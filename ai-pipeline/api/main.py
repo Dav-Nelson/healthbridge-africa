@@ -11,6 +11,7 @@ import sys
 import shutil
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse  # Added for streaming generated audio files
 from pydantic import BaseModel
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -58,6 +59,12 @@ class QuestionRequest(BaseModel):
     language: str = "en"  # Standard default representation code
 
 
+class SpeakRequest(BaseModel):
+    """Added schema to parse plain-text parameters sent from the Express proxy routing layer."""
+    text: str
+    language: str = "en"
+
+
 # ── Helper Language Routing Utilities ───────────────────
 def get_full_language_name(lang_code: str) -> str:
     """Maps ISO code snippet prefixes to full descriptive names for Llama 3 prompt ingestion."""
@@ -87,7 +94,7 @@ def home():
     return {
         "message": "HealthBridge Africa AI Pipeline running",
         "version": "0.2.0",
-        "endpoints": ["/ask", "/transcribe", "/voice-agent", "/voice-chat"]
+        "endpoints": ["/ask", "/transcribe", "/voice-agent", "/voice-chat", "/speak"]
     }
 
 
@@ -245,3 +252,33 @@ async def voice_chat(
     finally:
         if os.path.exists(temp_path):
             os.remove(temp_path)
+
+
+@app.post("/speak")
+async def speak(data: SpeakRequest):
+    """
+    Standalone Text-to-Speech Engine Endpoint.
+    Converts plain text answers directly into binary audio byte stream arrays on request.
+    """
+    try:
+        if not data.text:
+            raise HTTPException(status_code=400, detail="Text payload parameter cannot be empty")
+            
+        # Synthesize audio file name via internal pipeline processing modules
+        audio_filename = text_to_speech(data.text, data.language)
+        
+        # Check standard static location fallback structures
+        static_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "static"))
+        file_path = os.path.join(static_dir, audio_filename)
+        
+        if not os.path.exists(file_path):
+            # Alternative: direct relative resolution path check
+            file_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", audio_filename))
+            
+        if os.path.exists(file_path):
+            return FileResponse(file_path, media_type="audio/mpeg", filename=audio_filename)
+            
+        raise HTTPException(status_code=404, detail="Audio pipeline failed to verify temporary asset generation on disk")
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
