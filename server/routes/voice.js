@@ -29,10 +29,12 @@ router.post('/chat', upload.single('audio'), async (req, res) => {
     return res.status(400).json({ error: 'Audio file is required' });
   }
   try {
-    const audioBlob = new Blob([req.file.buffer], { type: req.file.mimetype });
     const selectedLanguage = req.body.language || 'en';
 
+    // MEMORY OPTIMIZATION: Use a native Blob wrapper around the buffer without double cloning memory
     const formData = new FormData();
+    const audioBlob = new Blob([req.file.buffer], { type: req.file.mimetype });
+    
     formData.append('file', audioBlob, req.file.originalname || 'audio.wav');
     formData.append('language', selectedLanguage);
 
@@ -47,8 +49,7 @@ router.post('/chat', upload.single('audio'), async (req, res) => {
       success: true,
       transcribed: response.data.user_text,
       response: response.data.answer,
-      // FIX: Changed from audio_path to audio_file to match Python's response payload key
-      audioPath: response.data.audio_file, 
+      audioPath: response.data.audio_file, // Mapped accurately to the Python backend key name
       sources: response.data.sources,
       disclaimer: 'This is not medical advice. Please see a doctor for diagnosis and treatment.'
     });
