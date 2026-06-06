@@ -61,10 +61,42 @@ router.post('/chat', upload.single('audio'), async (req, res) => {
   }
 });
 
+// POST /api/voice/text-chat
+router.post('/text-chat', async (req, res) => {
+  try {
+    const { message, language } = req.body;
+
+    if (!message) {
+      return res.status(400).json({ error: 'Message text is required' });
+    }
+
+    const pipelineBaseUrl = getPipelineUrl();
+
+    const response = await axios.post(`${pipelineBaseUrl}/ask`, {
+      question: message,
+      language: language || 'en'
+    }, {
+      headers: { 'Content-Type': 'application/json' },
+      timeout: 15000
+    });
+
+    return res.json({
+      success: true,
+      transcribed: message,
+      response: response.data.answer || '',
+      sources: response.data.sources || [],
+      disclaimer: 'This is not medical advice. Please see a doctor for diagnosis and treatment.'
+    });
+  } catch (error) {
+    console.error('Text chat connection failure:', error.response?.data || error.message);
+    return res.status(500).json({ error: 'Text chat failed', message: error.message });
+  }
+});
+
 // POST /api/voice/speak
 router.post('/speak', async (req, res) => {
   try {
-    const pipelineBaseUrl = getPipelineUrl(); // Fixed: Now falls back to the correct pipeline URL
+    const pipelineBaseUrl = getPipelineUrl();
     
     const pythonResponse = await axios.post(`${pipelineBaseUrl}/speak`, req.body, {
       headers: { 'Content-Type': 'application/json' },
