@@ -7,7 +7,6 @@ export default function ResponsePlayer({ text, language }) {
   const [audioElement, setAudioElement] = useState(null);
 
   const handlePlayAudio = async () => {
-    // If already playing, stop it
     if (isPlaying && audioElement) {
       audioElement.pause();
       setIsPlaying(false);
@@ -22,40 +21,55 @@ export default function ResponsePlayer({ text, language }) {
         body: JSON.stringify({ text, language: language ? language.toLowerCase() : 'en' }),
       });
 
-      if (!response.ok) throw new Error('Failed to fetch audio stream');
+      if (!response.ok) throw new Error('Failed to fetch audio from server');
 
-      // Check content type to see if backend returned JSON or binary data
-      const contentType = response.headers.get('content-type');
+      const contentType = response.headers.get('content-type') || '';
       let audioUrl = '';
 
-      if (contentType && contentType.includes('application/json')) {
+      // Universal Parsing Layer
+      if (contentType.includes('application/json')) {
+        // Option A: Backend responded with JSON wrapped Base64
         const data = await response.json();
-        // If data contains a base64 audio payload string
-        if (data.audio || data.audioContent) {
-          const rawBase64 = data.audio || data.audioContent;
-          audioUrl = `data:audio/mp3;base64,${rawBase64}`;
-        } else {
-          throw new Error('Audio payload missing inside JSON response object');
-        }
+        const rawBase64 = data.audio || data.audioContent || data.data;
+        if (!rawBase64) throw new Error('JSON structure did not contain audio data');
+        audioUrl = `data:audio/mp3;base64,${rawBase64}`;
       } else {
-        // Fallback fallback: handle it as a direct raw binary audio blob stream
-        const blob = await response.blob();
-        audioUrl = URL.createObjectURL(blob);
+        // Option B: Backend responded with a raw direct binary stream/blob
+        const audioBlob = await response.blob();
+        if (audioBlob.size === 0) throw new Error('Received an empty audio blob file');
+        audioUrl = URL.createObjectURL(audioBlob);
       }
 
-      const audio = new Audio(audioUrl);
+      // Initialize HTML5 Audio playback context securely
+      const audio = new Audio();
+      audio.src = audioUrl;
       
-      audio.onended = () => setIsPlaying(false);
-      audio.onerror = (e) => {
-        console.error("HTML Audio element decoding failed:", e);
+      audio.onended = () => {
         setIsPlaying(false);
+        if (!contentType.includes('application/json')) {
+          URL.revokeObjectURL(audioUrl); // Clean up memory if blob was used
+        }
       };
-      
+
+      audio.onerror = (e) => {
+        console.error("Browser media playback engine failed to decode audio source:", e);
+        setIsPlaying(false);
+        alert("Audio formatting issue. Please try again or check server codecs.");
+      };
+
       setAudioElement(audio);
-      audio.play();
       setIsPlaying(true);
+      
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(err => {
+          console.error("Playback interrupted or blocked by browser autoplay policy:", err);
+          setIsPlaying(false);
+        });
+      }
+
     } catch (error) {
-      console.error("Audio Playback System Error:", error.message);
+      console.error("Audio Processing Pipeline Exception:", error.message);
       alert("Could not play the audio response.");
     } finally {
       setIsLoading(false);
