@@ -9,6 +9,9 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 }
 });
 
+// Helper to keep pipeline fallback URLs consistent across endpoints
+const getPipelineUrl = () => process.env.AI_PIPELINE_URL || 'https://healthbridge-africa-ai-pipeline.onrender.com';
+
 // POST /api/voice/transcribe
 router.post('/transcribe', upload.single('audio'), async (req, res) => {
   if (!req.file) {
@@ -31,23 +34,19 @@ router.post('/chat', upload.single('audio'), async (req, res) => {
   try {
     const selectedLanguage = req.body.language || 'en';
 
-    // Create a fresh FormData boundary instance for every isolated request
     const formData = new FormData();
     const audioBlob = new Blob([req.file.buffer], { type: req.file.mimetype });
     
     formData.append('file', audioBlob, req.file.originalname || 'audio.wav');
     formData.append('language', selectedLanguage);
 
-    const pipelineBaseUrl = process.env.AI_PIPELINE_URL || 'https://healthbridge-africa.onrender.com';
+    const pipelineBaseUrl = getPipelineUrl();
     
-    const response = await axios.post(`${pipelineBaseUrl}/voice-chat`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      },
+    const response = await axios.post(`${pipelineBaseUrl}/ask`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
       timeout: 15000
     });
 
-    // Ensure we explicitly return the JSON structure cleanly to prevent lingering headers
     return res.json({
       success: true,
       transcribed: response.data.user_text || '',
@@ -65,7 +64,7 @@ router.post('/chat', upload.single('audio'), async (req, res) => {
 // POST /api/voice/speak
 router.post('/speak', async (req, res) => {
   try {
-    const pipelineBaseUrl = process.env.AI_PIPELINE_URL || 'https://healthbridge-africa.onrender.com';
+    const pipelineBaseUrl = getPipelineUrl(); // Fixed: Now falls back to the correct pipeline URL
     
     const pythonResponse = await axios.post(`${pipelineBaseUrl}/speak`, req.body, {
       headers: { 'Content-Type': 'application/json' },
@@ -82,7 +81,7 @@ router.post('/speak', async (req, res) => {
         return res.send(audioBuffer);
       }
     } catch (e) {
-      // Data was not JSON, drop down to raw binary logic
+      // Data was not JSON string, fallback to processing raw response stream
     }
 
     const contentType = pythonResponse.headers['content-type'] || 'audio/mpeg';
