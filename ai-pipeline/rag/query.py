@@ -1,37 +1,39 @@
 def ask_rag(question: str, language: str = "English") -> dict:
     """Full RAG: search knowledge base, then answer with Groq Llama 3 in the target language."""
     
-    # --- CROSS-LINGUAL ALIGNMENT FIX ---
-    # If the question isn't in English, get a quick English translation for vector mapping
+    # --- STABILIZED CROSS-LINGUAL ALIGNMENT FIX ---
+    # To protect against raw dialect lookups failing semantic score floors,
+    # we dynamically extract an English equivalent search term using Groq.
     search_query = question
-    if language.lower() != "english":
-        try:
-            translation_response = client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
-                messages=[
-                    {
-                        "role": "system", 
-                        "content": "You are a professional medical translator. Translate the user query strictly into English. Return ONLY the plain English translation, nothing else."
-                    },
-                    {"role": "user", "content": question}
-                ],
-                max_tokens=100,
-                temperature=0.0
-            )
-            search_query = translation_response.choices[0].message.content.strip()
-            # Optional tracking log for your backend logs:
-            print(f"[RAG Translation Log] Original: '{question}' -> Search Term: '{search_query}'")
-        except Exception as e:
-            print(f"Translation preprocessing failed: {e}")
-            search_query = question # Fallback to original if API error
+    try:
+        translation_response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {
+                    "role": "system", 
+                    "content": "You are a professional medical translator. Translate the user query strictly into English. If the query is already in English, return it exactly as it is. Return ONLY the plain English translation, nothing else."
+                },
+                {"role": "user", "content": question}
+            ],
+            max_tokens=100,
+            temperature=0.0
+        )
+        translated_text = translation_response.choices[0].message.content.strip()
+        if translated_text:
+            search_query = translated_text
+        print(f"[RAG Translation Log] Input: '{question}' -> Unified Search Term: '{search_query}'")
+    except Exception as e:
+        print(f"Translation preprocessing routing failed: {e}")
+        search_query = question # Fallback baseline
     # ------------------------------------
 
-    # Now we pass the English search_query to hit your English markdown data chunks perfectly
+    # Query your English vector-store using the cleanly aligned search term
     top_chunks = search_documents(search_query, top_k=3)
     
+    # Structural fallback protection to prevent downstream 500 compilation crashes
     if not top_chunks:
         return {
-            "answer": "I don't have verified information on that. Please consult a healthcare provider.",
+            "answer": "I don't have verified information on that in the local database. Please consult a healthcare provider.",
             "context": "",
             "score": 0,
             "sources": []
@@ -42,9 +44,9 @@ def ask_rag(question: str, language: str = "English") -> dict:
     if best_score < 0.45:
         return {
             "answer": (
-                "I could not find reliable information in the "
-                "HealthBridge knowledge base for that question. "
-                "Please consult a healthcare professional."
+                f"I could not find sufficiently reliable information in the "
+                f"HealthBridge knowledge base regarding your question. "
+                f"Please consult a professional medical healthcare worker."
             ),
             "context": "",
             "score": round(best_score, 4),
@@ -59,7 +61,7 @@ def ask_rag(question: str, language: str = "English") -> dict:
     context = "\n\n".join(context_parts)
     context = context[:6000]
     
-    # Dynamic language mapping to guide Llama 3 precisely
+    # Dynamic language instructions guiding Llama 3 generation properties
     system_instruction = (
         f"You are HealthBridge Africa's health information assistant.\n"
         f"CRITICAL: You MUST respond entirely in the following language/dialect: {language}.\n"
@@ -79,7 +81,6 @@ def ask_rag(question: str, language: str = "English") -> dict:
             },
             {
                 "role": "user",
-                # Pass the original user question so it responds directly to their dialect input context
                 "content": f"Context:\n{context}\n\nQuestion: {question}" 
             }
         ],
@@ -93,10 +94,3 @@ def ask_rag(question: str, language: str = "English") -> dict:
         "score": round(top_chunks[0]["score"], 4),
         "sources": list(set([c.get("source", "unknown") for c in top_chunks]))
     }
-
-if __name__ == "__main__":
-    result = ask_rag("What are the symptoms of malaria and when should I see a doctor?")
-    print("\n=== HealthBridge Africa Answer ===")
-    print(result["answer"])
-    print(f"\nTop similarity score: {result['score']}")
-    print(f"Sources used: {result['sources']}")
