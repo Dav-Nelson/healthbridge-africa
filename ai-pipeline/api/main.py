@@ -264,8 +264,12 @@ async def speak(data: SpeakRequest):
         if not data.text:
             raise HTTPException(status_code=400, detail="Text payload parameter cannot be empty")
             
+        # FIX: Translate incoming language codes (e.g., 'pcm', 'tw') into full 
+        # descriptive strings ('Nigerian Pidgin', 'Twi') to match text_to_speech expectations.
+        target_lang_name = get_full_language_name(data.language)
+        
         # Synthesize audio file name via internal pipeline processing modules
-        audio_filename = text_to_speech(data.text, data.language)
+        audio_filename = text_to_speech(data.text, target_lang_name)
         
         # Check standard static location fallback structures
         static_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "static"))
