@@ -1,3 +1,21 @@
+import os
+import sys
+from openai import OpenAI
+from dotenv import load_dotenv
+
+# Ensure environment variables are loaded securely
+load_dotenv()
+
+# Initialize the Groq client context explicitly inside this module
+client = OpenAI(
+    api_key=os.environ.get("GROQ_API_KEY"),
+    base_url="https://api.groq.com/openai/v1"
+)
+
+# --- Keep your existing dependencies or placeholder functions ---
+# Make sure search_documents is imported or accessible within your project structure
+# from rag.vector_store import search_documents 
+
 def ask_rag(question: str, language: str = "English") -> dict:
     """Full RAG: search knowledge base, then answer with Groq Llama 3 in the target language."""
     
