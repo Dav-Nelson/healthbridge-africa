@@ -29,7 +29,7 @@ def ask_rag(question: str, language: str = "English") -> dict:
     search_query = question
     try:
         translation_response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
+            model="llama-3.1-8b-instant",  # FIXED: Swapped to high-limit, fast model
             messages=[
                 {
                     "role": "system", 
@@ -103,7 +103,7 @@ def ask_rag(question: str, language: str = "English") -> dict:
     )
     
     response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model="llama-3.1-8b-instant",  # FIXED: Swapped to high-limit, fast model
         messages=[
             {
                 "role": "system",
