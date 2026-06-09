@@ -73,7 +73,7 @@ def translate_to_english(text: str, source_lang: str) -> str:
         return text
 
     response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model="llama-3.1-8b-instant",
         messages=[
             {
                 "role": "system",
@@ -105,7 +105,7 @@ def translate_answer_back(answer: str, target_lang: str) -> str:
     lang_name = SUPPORTED_LANGUAGES.get(target_lang, target_lang)
 
     response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model="llama-3.1-8b-instant",
         messages=[
             {
                 "role": "system",
@@ -233,6 +233,7 @@ async def voice_agent(
                 model="whisper-large-v3",
                 file=audio_file,
                 response_format="verbose_json"
+                # response_format="text"  # ← simpler output for voice agent
             )
             if language and language.lower() not in ("auto", "none", ""):
                 kwargs["language"] = language

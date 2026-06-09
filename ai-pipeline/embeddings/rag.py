@@ -80,7 +80,7 @@ def ask(question: str, history: List[Dict] = []) -> dict:
 
     # Step 5: Call Groq LLM
     response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model="llama-3.1-8b-instant",
         messages=messages,
         max_tokens=500,
         temperature=0.3
