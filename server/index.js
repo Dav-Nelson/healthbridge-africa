@@ -11,6 +11,10 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
+// 🟢 Cloud hosting health checks (handles HEAD /health and GET /health)
+app.head('/health', (req, res) => res.status(200).end());
+app.get('/health', (req, res) => res.status(200).json({ status: 'ok' }));
+
 app.use('/api/health', require('./routes/health'));
 app.use('/api/voice', require('./routes/voice'));
 app.use('/api/chat', require('./routes/chat'));
