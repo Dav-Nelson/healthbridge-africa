@@ -1,12 +1,10 @@
 import React, { useEffect, useRef } from 'react';
-import posthog from 'posthog-js';
 import BotMessageBubble from './BotMessageBubble';
 
 export default function ChatDisplay({ messages, isLoading, language }) {
   const messagesEndRef = useRef(null);
 
-  // 1. Dictionary updated to support lowercased ISO language codes passed from App.js
-  const translations = {
+ const translations = {
     en: {
       greeting: "How can we help you today?",
       instruction: "Type a health question or use the microphone to speak.",
@@ -15,35 +13,31 @@ export default function ChatDisplay({ messages, isLoading, language }) {
     pcm: {
       greeting: "How we fit help you today?",
       instruction: "Type your health question or use mic talk.",
-      thinking: "Processing audio..."
+      thinking: "I dey check the audio..."
     },
     sw: {
       greeting: "Tunawezaje kukusaidia leo?",
       instruction: "Andika swali la afya au tumia maikrofoni kuzungumza.",
-      thinking: "Processing audio..."
+      thinking: "Inachakata sauti..."
     },
     om: {
       greeting: "Har'a akkamitti isin gargaaruu dandeenya?",
       instruction: "Gaaffii fayyaa barreessi ykn maayikiroofoonii fayyadami.",
-      thinking: "Processing audio..."
+      thinking: "Sagalee qorachaa jira..."
     },
     tw: {
       greeting: "Yɛbɛyɛ dɛn aboa wo nnɛ?",
       instruction: "Kyerɛw wo apɔwmuden asɛm anaa fa kasa afiri no kasa.",
-      thinking: "Processing audio..."
+      thinking: "Yɛresiesie wo nne..."
     },
     am: {
       greeting: "የጤና ጥያቄዎን እዚህ ይጻፉ...",
       instruction: "የጤና ጥያቄዎን እዚህ ይጻፉ ወይም ማይክሮፎኑን በመጠቀም ይናገሩ።",
-      thinking: "እያደመጥን ነው..."
+      thinking: "ድምፅዎን በመተርጎም ላይ ነው..."
     }
   };
 
   const t = translations[language] || translations.en;
-
-  const handleFeedback = (rating, index) => {
-    posthog.capture('accent_rated', { rating, message_id: index });
-  };
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -59,19 +53,16 @@ export default function ChatDisplay({ messages, isLoading, language }) {
       ) : (
         messages.map((msg, index) => (
           msg.sender === 'user' ? (
-            /* User Message Bubble */
-            <div key={index} className="max-w-[88%] md:max-w-[75%] rounded-2xl px-4 py-3 md:px-5 md:py-4 bg-teal-600 text-white self-end rounded-br-none shadow-sm shadow-teal-100">
+            <div key={index} className="max-w-[88%] md:max-w-[75%] rounded-2xl px-4 py-3 bg-teal-600 text-white self-end rounded-br-none shadow-sm shadow-teal-100">
               <p className="leading-relaxed text-sm md:text-base whitespace-pre-line">{msg.text}</p>
             </div>
           ) : (
-            /* Healthcare-focused Clinical Bot Card Layout */
             <div key={index} className="max-w-[88%] md:max-w-[75%] rounded-2xl p-5 bg-white border border-slate-200 self-start rounded-bl-none shadow-sm flex flex-col gap-4">
               
               <div className="leading-relaxed text-slate-800 text-sm md:text-base">
                 <BotMessageBubble text={msg.text} language={language} />
               </div>
 
-              {/* Clinical Imagery (Renders dynamically if payload includes imageUrl) */}
               {msg.imageUrl && (
                 <div className="mt-2 bg-slate-50 rounded-xl p-3 border border-slate-100">
                   <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">
@@ -88,25 +79,11 @@ export default function ChatDisplay({ messages, isLoading, language }) {
                 </div>
               )}
 
-              {/* Accent Evaluation Interaction Layout */}
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-                <span className="text-xs text-slate-400 font-medium">Rate accent accuracy:</span>
-                <div className="flex space-x-4">
-                  <button onClick={() => handleFeedback('good', index)} className="text-slate-400 hover:text-green-500 scale-110 active:scale-95 transition">
-                    👍
-                  </button>
-                  <button onClick={() => handleFeedback('bad', index)} className="text-slate-400 hover:text-red-500 scale-110 active:scale-95 transition">
-                    👎
-                  </button>
-                </div>
-              </div>
-
             </div>
           )
         ))
       )}
       
-      {/* Dynamic Animated Waveform Module Replacing Simple Spinner */}
       {isLoading && (
         <div className="bg-white border border-slate-200 shadow-sm rounded-2xl rounded-bl-none px-5 py-4 flex items-center space-x-1.5 h-14 self-start">
           <div className="w-1 bg-teal-500 h-5 rounded-full animate-wave" style={{ animationDelay: '0.0s' }}></div>
