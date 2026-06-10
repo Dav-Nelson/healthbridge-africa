@@ -4,44 +4,58 @@ import Header from './components/Header';
 import Footer from './components/Footer';
 import ChatDisplay from './components/ChatDisplay';
 
-const API_BASE_URL = 'https://healthbridge-africa.onrender.com';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+
+// ISO Language mapping layer supporting Amharic
+const LANGUAGE_ISO_MAP = {
+  'english': 'en',
+  'pidgin': 'pcm',
+  'swahili': 'sw',
+  'oromo': 'om',
+  'twi': 'tw',
+  'amharic': 'am'
+};
 
 export default function App() {
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
-  const [language, setLanguage] = useState('English');
+  const [language, setLanguage] = useState('English'); 
 
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
 
+  const getCleanLanguageCode = () => {
+    const currentLang = language.toLowerCase();
+    return LANGUAGE_ISO_MAP[currentLang] || currentLang;
+  };
+
   const handleSendMessage = async (textToProcess) => {
     if (!textToProcess.trim()) return;
 
-    // FIX: Safely append user message using functional state
     setMessages(prev => [...prev, { sender: 'user', text: textToProcess }]);
     setInputValue('');
     setIsLoading(true);
 
     try {
+      const targetCode = getCleanLanguageCode();
+
       const response = await fetch(`${API_BASE_URL}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           query: textToProcess, 
-          language: language.toLowerCase() 
+          language: targetCode 
         }),
       });
 
       if (!response.ok) throw new Error('API response failed');
       const data = await response.json();
       
-      // FIX: Safely append bot message using functional state
       setMessages(prev => [...prev, { sender: 'bot', text: data.response }]);
     } catch (error) {
       console.error("Chat Error:", error);
-      // FIX: Safely append error message using functional state
       setMessages(prev => [...prev, { sender: 'bot', text: "Sorry, I am having trouble connecting to the server right now." }]);
     } finally {
       setIsLoading(false);
@@ -106,7 +120,6 @@ export default function App() {
       }
     } catch (error) {
       console.error("Transcription Error:", error);
-      // FIX: Safely append error message using functional state
       setMessages(prev => [...prev, { sender: 'bot', text: "Sorry, I couldn't process your voice message." }]);
     } finally {
       setIsLoading(false);
@@ -133,13 +146,11 @@ export default function App() {
         <ChatDisplay 
           messages={messages} 
           isLoading={isLoading} 
-          language={language} 
+          language={getCleanLanguageCode()} 
         />
 
-        {/* Input Area (VoiceRecorder & Text) */}
         <div className="bg-white rounded-b-2xl shadow-sm border border-slate-200 p-4">
           <form onSubmit={handleTextSubmit} className="flex items-center gap-3">
-            
             <button
               type="button"
               onClick={isRecording ? stopRecording : startRecording}
