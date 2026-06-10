@@ -3,6 +3,7 @@ import { Mic, Square, Send } from 'lucide-react';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import ChatDisplay from './components/ChatDisplay';
+import OnboardingModal from './OnboardingModal'; // Added Import
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
@@ -22,6 +23,7 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [language, setLanguage] = useState('English'); 
+  const [showOnboarding, setShowOnboarding] = useState(true); // Added Modal State
 
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
@@ -53,7 +55,12 @@ export default function App() {
       if (!response.ok) throw new Error('API response failed');
       const data = await response.json();
       
-      setMessages(prev => [...prev, { sender: 'bot', text: data.response }]);
+      // Kept consistent with your data fields (adding support for optional clinical images)
+      setMessages(prev => [...prev, { 
+        sender: 'bot', 
+        text: data.response,
+        imageUrl: data.imageUrl || null 
+      }]);
     } catch (error) {
       console.error("Chat Error:", error);
       setMessages(prev => [...prev, { sender: 'bot', text: "Sorry, I am having trouble connecting to the server right now." }]);
@@ -126,23 +133,30 @@ export default function App() {
     }
   };
 
-  // --- NEW TRANSLATION LOGIC ---
+  // --- NEW TRANSLATION LOGIC WITH AMHARIC ---
   const inputTranslations = {
     English: { placeholder: "Type your health question...", recording: "Listening..." },
     Pidgin: { placeholder: "Type your health question...", recording: "I dey listen..." },
     Swahili: { placeholder: "Andika swali lako la afya...", recording: "Inasikiliza..." },
     Oromo: { placeholder: "Gaaffii fayyaa kee barreessi...", recording: "Dhaggeeffachaa jira..." },
-    Twi: { placeholder: "Kyerɛw wo apɔwmuden asɛm...", recording: "Mretie..." }
+    Twi: { placeholder: "Kyerɛw wo apɔwmuden asɛm...", recording: "Mretie..." },
+    Amharic: { placeholder: "የጤና ጥያቄዎን እዚህ ይጻፉ...", recording: "እያዳመጥኩ ነው..." }
   };
 
   const tInput = inputTranslations[language] || inputTranslations.English;
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
+    <div className="min-h-screen bg-slate-50 flex flex-col font-sans antialiased">
+      {/* 1. Onboarding Modal Mount */}
+      {showOnboarding && (
+        <OnboardingModal onComplete={() => setShowOnboarding(false)} />
+      )}
+
       <Header language={language} setLanguage={setLanguage} />
 
       <main className="flex-grow flex flex-col max-w-4xl mx-auto w-full p-4 h-[calc(100vh-140px)]">
         
+        {/* 2. Chat Display Mount (Maps to your message properties) */}
         <ChatDisplay 
           messages={messages} 
           isLoading={isLoading} 
@@ -167,7 +181,6 @@ export default function App() {
               type="text"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              // --- UPDATED PLACEHOLDER TO USE TRANSLATIONS ---
               placeholder={isRecording ? tInput.recording : tInput.placeholder}
               disabled={isRecording || isLoading}
               className="flex-grow p-4 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none transition-all disabled:opacity-50"
@@ -184,7 +197,6 @@ export default function App() {
         </div>
       </main>
 
-      {/* --- PASSED LANGUAGE TO FOOTER --- */}
       <Footer language={language} />
     </div>
   );
