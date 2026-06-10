@@ -9,7 +9,7 @@ from embeddings.search import search
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
-MIN_SIMILARITY = 0.25
+MIN_SIMILARITY = 0.55
 
 
 def ask(question: str, history: List[Dict] = []) -> dict:

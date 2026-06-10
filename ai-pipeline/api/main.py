@@ -24,8 +24,7 @@ from openai import OpenAI
 # Make sure rag/ is importable
 # sys.path.insert(0, os.path.dirname(__file__))
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from rag.query import ask_rag
-
+from embeddings.rag import ask
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "..", ".env"))
 
 # client = Groq(api_key=os.getenv("GROQ_API_KEY"))
@@ -44,10 +43,32 @@ SUPPORTED_LANGUAGES = {
     "fr":  "French",
 }
 
+# ── Helper Language Routing Utilities ───────────────────
+def get_full_language_name(lang_code: str) -> str:
+    """Maps ISO code snippet prefixes to full descriptive names for Llama 3 prompt ingestion."""
+    return SUPPORTED_LANGUAGES.get(lang_code.lower(), "English")
+
+
+def map_to_whisper_lang(lang_code: str) -> str:
+    """
+    Safeguards Groq Whisper API from crashing when receiving non-ISO codes.
+    Maps localized dialects to standard Whisper accepted tracking keys.
+    """
+    whisper_lang_map = {
+        "en": "en",
+        "sw": "sw",
+        "am": "am",
+        "om": "om",   # Whisper large-v3 supports Oromo natively
+        "pcm": "en",  # Fallback Pidgin audio capture to English context for stabilization
+        "tw": "en"    # Fallback Twi audio processing to English background engine
+    }
+    return whisper_lang_map.get(lang_code.lower(), "en")
+
+
 app = FastAPI(
     title="HealthBridge Africa — AI Pipeline",
     description="Multilingual voice health agent for Africa",
-    version="0.3.0"
+    version="0.2.0"
 )
 
 app.add_middleware(
@@ -63,6 +84,10 @@ class QuestionRequest(BaseModel):
     question: str
     language: str = "auto"
 
+class SpeakRequest(BaseModel):
+    """Added schema to parse plain-text parameters sent from the Express proxy routing layer."""
+    text: str
+    language: str = "en"
 
 # ── Endpoints ─────────────────────────────────────────────
 
@@ -71,7 +96,7 @@ def home():
     return {
         "message": "HealthBridge Africa AI Pipeline running",
         "version": "0.2.0",
-        "endpoints": ["/ask", "/transcribe", "/voice-agent"]
+        "endpoints": ["/ask", "/transcribe", "/voice-agent", "/voice-chat", "/speak"]
     }
 
 
@@ -87,8 +112,8 @@ async def ask_question(data: QuestionRequest):
       4. Translate answer back to user's language
     """
     try:
-        result = ask_rag(data.question)
-        return {
+            result = ask(data.question)
+            return {
             "question": data.question,
             "answer": result["answer"],
             "similarity_score": result["score"],
@@ -123,17 +148,17 @@ async def transcribe_audio(
         
         # Transcribe with Groq Whisper (cloud, free tier)
         with open(temp_path, "rb") as audio_file:
-            transcription = client.audio.transcriptions.create(
-                model="whisper-large-v3",   # Best Whisper model, free on Groq
-                file=audio_file,
-                # language=language,           # Forced language — no guessing
-                response_format="verbose_json"
-            )
+            kwargs = {
+                "model": "whisper-large-v3",
+                "file": audio_file,
+                "response_format": "verbose_json"
+            }
+
             if language and language.lower() not in ("auto", "none", ""):
                 kwargs["language"] = language
 
             transcription = client.audio.transcriptions.create(**kwargs)
-
+        
         return {
             "text":              transcription.text,
             "detected_language": getattr(transcription, "language", "unknown"),
@@ -167,16 +192,13 @@ async def voice_agent(
         
         # Step 1: Speech to Text (Groq Whisper)
         with open(temp_path, "rb") as audio_file:
-            kwargs = dict(
+            transcription = client.audio.transcriptions.create(
                 model="whisper-large-v3",
                 file=audio_file,
                 language=language,
                 response_format="json"
             )
-        
-        # user_text = transcription.text
-        # print(f"STT result: {user_text}")
-        
+
         user_text = transcription.text
 
         try:
@@ -188,8 +210,7 @@ async def voice_agent(
         print(f"Detected language: {detected_language}")
         
         # Step 2: RAG answer (Groq Llama 3)
-        rag_result = ask_rag(user_text)
-        
+        rag_result = ask(user_text)        
         return {
             "detected_language": detected_language,
             "user_text": user_text,
@@ -225,10 +246,14 @@ async def voice_chat(
                 response_format="json"
             )
 
-        user_text = transcription.text
-
+        user_text = (
+            transcription.get("text", "")
+            if isinstance(transcription, dict)
+            else transcription.text
+        )
         # RAG
-        rag_result = ask_rag(user_text)
+        rag_result = ask(user_text)
+        
 
         # TTS
         audio_response = text_to_speech(
@@ -249,3 +274,50 @@ async def voice_chat(
     finally:
         if os.path.exists(temp_path):
             os.remove(temp_path)
+            
+
+@app.post("/speak")
+async def speak(data: SpeakRequest):
+    """
+    Standalone Text-to-Speech Engine Endpoint.
+    Delivers base64 or file data dynamically back to client architecture.
+    """
+    try:
+        if not data.text:
+            raise HTTPException(status_code=400, detail="Text payload parameter cannot be empty")
+            
+        target_lang_name = get_full_language_name(data.language)
+        
+        # Synthesize audio data via internal pipeline processing modules
+        audio_result = text_to_speech(data.text, target_lang_name)
+        
+        # FIX: If the TTS engine returns a raw base64 URI stream directly, return it as JSON immediately
+        if isinstance(audio_result, str) and audio_result.startswith("data:audio/"):
+            # Extract raw base64 body if it contains the metadata header prefix
+            raw_base64 = audio_result.split(",")[1] if "," in audio_result else audio_result
+            return {
+                "status": "success",
+                "audio": raw_base64
+            }
+            
+        # Fallback directory disk checks if a standard short filename configuration string is returned
+        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+        static_dir = os.path.join(base_dir, "static")
+        
+        file_path = os.path.join(static_dir, str(audio_result))
+        if not os.path.exists(file_path):
+            file_path = os.path.join(base_dir, str(audio_result))
+        if not os.path.exists(file_path):
+            file_path = os.path.abspath(str(audio_result))
+            
+        if os.path.exists(file_path):
+            return FileResponse(file_path, media_type="audio/mpeg", filename=str(audio_result))
+            
+        raise HTTPException(
+            status_code=404, 
+            detail=f"Audio pipeline asset resolution mismatch. File not found on disk context path: {audio_result}"
+        )
+        
+    except Exception as e:
+        print(f"CRITICAL TTS /speak failure exception: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
