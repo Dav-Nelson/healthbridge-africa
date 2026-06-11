@@ -132,13 +132,38 @@ export default function App() {
     }
   };
 
+  // --- UPDATED TRANSLATION DICTIONARY WITH LEGAL DISCLAIMERS ---
   const inputTranslations = {
-    English: { placeholder: "Type your health question...", recording: "Listening..." },
-    Pidgin: { placeholder: "Type your health question...", recording: "I dey listen..." },
-    Swahili: { placeholder: "Andika swali lako la afya...", recording: "Inasikiliza..." },
-    Oromo: { placeholder: "Gaaffii fayyaa kee barreessi...", recording: "Dhaggeeffachaa jira..." },
-    Twi: { placeholder: "Kyerɛw wo apɔwmuden asɛm...", recording: "Mretie..." },
-    Amharic: { placeholder: "የጤና ጥያቄዎን እዚህ ይጻፉ...", recording: "እያዳመጥኩ ነው..." }
+    English: { 
+      placeholder: "Type your health question...", 
+      recording: "Listening...",
+      disclaimer: "This system is not a substitute for professional medical advice. Always consult a certified doctor."
+    },
+    Pidgin: { 
+      placeholder: "Type your health question...", 
+      recording: "I dey listen...",
+      disclaimer: "This system no be doctor substitute. Make you always check certified doctor."
+    },
+    Swahili: { 
+      placeholder: "Andika swali lako la afya...", 
+      recording: "Inasikiliza...",
+      disclaimer: "Mfumo huu sio mbadala wa ushauri wa kitaalamu wa matibabu. Daima shauriana na daktari aliyethibitishwa."
+    },
+    Oromo: { 
+      placeholder: "Gaaffii fayyaa kee barreessi...", 
+      recording: "Dhaggeeffachaa jira...",
+      disclaimer: "Sirni kun gorsa yaala ogeessaa bakka hin bu'u. Yeroo mara ogeessa fayyaa hayyama qabu mariisisi."
+    },
+    Twi: { 
+      placeholder: "Kyerɛw wo apɔwmuden asɛm...", 
+      recording: "Mretie...",
+      disclaimer: "Eyi nsi aduruyɛ ho afutuo ananmu. Bere biara kɔbɔ oduruyɛfoɔ a ɔwɔ tumi krataa kɔkɔ."
+    },
+    Amharic: { 
+      placeholder: "የጤና ጥያቄዎን እዚህ ይጻፉ...", 
+      recording: "እያዳመጥኩ ነው...",
+      disclaimer: "ይህ ዘዴ የባለሙያ የህክምና ምክርን አይተካም። ሁልጊዜ የተረጋገጠ ዶክተር ያማክሩ።"
+    }
   };
 
   const tInput = inputTranslations[language] || inputTranslations.English;
@@ -222,8 +247,9 @@ export default function App() {
               </button>
             </form>
             
+            {/* --- UPDATED DYNAMIC TRANSLATION HOOK FOR DISCLAIMER --- */}
             <p className="text-[11px] text-slate-400 text-center mt-3 font-medium">
-              This system is not a substitute for professional medical advice. Always consult a certified doctor.
+              {tInput.disclaimer}
             </p>
           </div>
         </main>
