@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Mic, Square, Send, MessageSquare, Settings, History, HelpCircle } from 'lucide-react';
 import Header from './components/Header';
-import Footer from './components/Footer';
+// import Footer from './components/Footer';
 import ChatDisplay from './components/ChatDisplay';
 import OnboardingModal from './OnboardingModal';
 
