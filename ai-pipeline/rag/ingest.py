@@ -13,7 +13,8 @@ from dotenv import load_dotenv
 
 from sentence_transformers import SentenceTransformer
 
-load_dotenv(dotenv_path="ai-pipeline/.env")
+# load_dotenv(dotenv_path="ai-pipeline/.env")
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "..", ".env"))
 
 # client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 embed_model = SentenceTransformer("all-MiniLM-L6-v2")

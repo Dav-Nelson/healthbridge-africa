@@ -20,6 +20,10 @@ from langdetect import detect
 from tts.speak import text_to_speech
 from openai import OpenAI
 
+from api.memory import (
+    get_history, 
+    add_message
+)
 
 # Make sure rag/ is importable
 # sys.path.insert(0, os.path.dirname(__file__))
@@ -68,7 +72,7 @@ def map_to_whisper_lang(lang_code: str) -> str:
 app = FastAPI(
     title="HealthBridge Africa — AI Pipeline",
     description="Multilingual voice health agent for Africa",
-    version="0.2.0"
+    version="0.3.0"
 )
 
 app.add_middleware(
@@ -83,6 +87,7 @@ app.add_middleware(
 class QuestionRequest(BaseModel):
     question: str
     language: str = "auto"
+    session_id: str = None  # Optional session ID for conversation history tracking
 
 class SpeakRequest(BaseModel):
     """Added schema to parse plain-text parameters sent from the Express proxy routing layer."""
@@ -95,7 +100,7 @@ class SpeakRequest(BaseModel):
 def home():
     return {
         "message": "HealthBridge Africa AI Pipeline running",
-        "version": "0.2.0",
+        "version": "0.3.0",
         "endpoints": ["/ask", "/transcribe", "/voice-agent", "/voice-chat", "/speak"]
     }
 
@@ -112,7 +117,25 @@ async def ask_question(data: QuestionRequest):
       4. Translate answer back to user's language
     """
     try:
-            result = ask(data.question)
+            # result = ask(data.question)
+            history = get_history(data.session_id)
+
+            result = ask(
+                question=data.question,
+                history=history
+            )
+
+            add_message(
+                data.session_id,
+                "user",
+                data.question
+            )
+
+            add_message(
+                data.session_id,
+                "assistant",
+                result["answer"]
+            )
             return {
             "question": data.question,
             "answer": result["answer"],
@@ -137,7 +160,7 @@ async def transcribe_audio(
     """
     Audio file → transcribed text using Groq Whisper.
     
-    language options: "en", "sw", "om", "ha" (Hausa), etc.
+    language options: "en", "sw","am", "om", "pcm ", "ha" (Hausa), etc.
     Pass from frontend based on user's selected language.
     """
     temp_path = f"temp_{file.filename}"
@@ -176,7 +199,8 @@ async def transcribe_audio(
 @app.post("/voice-agent")
 async def voice_agent(
     file: UploadFile = File(...),
-    language: str = "en"
+    # language: str = "en"
+    language: str = None  # Auto-detect language from audio for more natural user experience
 ):
     """
     Full pipeline: Audio → STT → RAG → Answer

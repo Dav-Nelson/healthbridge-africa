@@ -1,17 +1,60 @@
 from embeddings.db import get_connection
 from embeddings.embed import get_embedding
 
-KNOWN_DISEASES = [
-    "malaria", "hiv", "aids", "cholera",
-    "tuberculosis", "tb", "diarrhea",
-    "schistosomiasis", "trachoma", "typhoid",
-    "hypertension", "dengue", "malnutrition",
-]
+KNOWN_DISEASES = {
+    # English
+    "malaria": "malaria",
+    "hiv": "hiv",
+    "aids": "hiv",
+    "cholera": "cholera",
+    "tuberculosis": "tuberculosis",
+    "tb": "tuberculosis",
+    "diarrhea": "diarrhea",
+    "trachoma": "trachoma",
+    "typhoid": "typhoid",
+    "hypertension": "hypertension",
+    "dengue": "dengue",
+
+    # Amharic
+    "ወባ": "malaria",
+    "ኮሌራ": "cholera",
+    "ሳንባ ነቀርሳ": "tuberculosis",
+    "ኤችአይቪ": "hiv",
+
+    # Afaan Oromo
+    "busaa": "malaria",
+    "koleeraa": "cholera",
+    "tuberkuloosii": "tuberculosis",
+    "hiv": "hiv",
+    "aids": "aids",
+    "tiraakoomaa": "trachoma",
+    "dengue": "dengue",
+
+    # Swahili
+    "malaria": "malaria",
+    "kipindupindu": "cholera",
+    "tuberkulosi": "tuberculosis",
+    "hiv": "hiv",
+    "aids": "aids",
+    "trachoma": "trachoma",
+    "dengue": "dengue",
+    
+
+    # Hausa
+    "zazzabin cizon sauro": "malaria",
+    "cholera": "cholera",
+    "tuberculosis": "tuberculosis",
+    "hiv": "hiv",
+    "aids": "aids",
+    "trachoma": "trachoma",
+    "dengue": "dengue",
+    
+}
 
 def detect_condition(question: str):
     q = question.lower()
-    for disease in KNOWN_DISEASES:
-        if disease in q:
+    for keyword, disease in KNOWN_DISEASES.items():
+        if keyword.lower() in q:
             return disease
     return None
 
