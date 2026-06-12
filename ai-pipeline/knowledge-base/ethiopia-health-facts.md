@@ -1,3 +1,10 @@
+---
+Country: Ethiopia
+Primary Sources: Federal Ministry of Health (FMoH) Ethiopia, World Health Organization (WHO) Country Office
+Target Regions: Lowland Endemic (Gambela, Afar), Highlands, Rural Agrarian Communities
+Supported Languages: English, Amharic (አማርኛ), Afaan Oromoo
+---
+
 # Ethiopia Health Facts
 
 ## Introduction
@@ -406,7 +413,6 @@ Seek immediate medical attention if:
 * Severe dehydration develops
 * Vomiting prevents fluid intake
 
-
 ## 12. Maternal Health
 
 **Amharic:** የእናቶች ጤና (*Yenatoch Tena*)  
@@ -473,3 +479,22 @@ All vaccines in Ethiopia's national immunization program are provided free of ch
 *This document is intended for health information and public health education purposes. It has been prepared to support HealthBridge Africa's multilingual AI health agent serving Ethiopian communities. All medical decisions, diagnoses, and treatments should be made in consultation with a qualified healthcare provider.*
 
 *Sources: Federal Ministry of Health Ethiopia (FMoH), World Health Organization (WHO) Ethiopia Country Office, UNICEF Ethiopia, CDC Ethiopia, Ethiopian Public Health Institute (EPHI), and peer-reviewed literature from the Ethiopian Journal of Health Development and the East African Medical Journal.*
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
