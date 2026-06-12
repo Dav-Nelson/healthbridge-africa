@@ -1,3 +1,10 @@
+---
+Country: Ethiopia
+Primary Sources: Federal Ministry of Health (FMoH) Ethiopia, World Health Organization (WHO) Country Office
+Target Regions: Lowland Endemic (Gambela, Afar), Highlands, Rural Agrarian Communities
+Supported Languages: English, Amharic (አማርኛ), Afaan Oromoo
+---
+
 # Ethiopia Health Facts
 
 ## Introduction

@@ -1,5 +1,14 @@
+# ai-pipeline/embeddings/ingest_to_db.py
 import os
+import sys
 import glob
+
+# --- PATH & MODULE RESOLUTION FIX ---
+# This forces Python to look inside the current folder for its sibling modules
+current_dir = os.path.dirname(os.path.abspath(__file__))
+if current_dir not in sys.path:
+    sys.path.insert(0, current_dir)
+
 from db import get_connection
 from chunker import chunk_text        # now returns list of dicts
 from embed import get_embedding
@@ -15,7 +24,7 @@ def ingest_file(filepath: str, source_name: str, country: str):
         text = f.read()
 
     chunks = chunk_text(text)
-    print(f"  📦 {len(chunks)} chunks created")
+    print(f"   📦 {len(chunks)} chunks created")
 
     conn = get_connection()
     cur = conn.cursor()
@@ -24,7 +33,7 @@ def ingest_file(filepath: str, source_name: str, country: str):
     cur.execute("DELETE FROM health_documents WHERE source = %s", (source_name,))
 
     for i, chunk in enumerate(chunks):
-        print(f"  🔢 Embedding chunk {i+1}/{len(chunks)} [{chunk['condition'][:40]}]...")
+        print(f"   🔢 Embedding chunk {i+1}/{len(chunks)} [{chunk['condition'][:40]}]...")
 
         embedding     = get_embedding(chunk["content"])
         embedding_str = format_embedding(embedding)    # ← fix scientific notation
@@ -44,7 +53,7 @@ def ingest_file(filepath: str, source_name: str, country: str):
     conn.commit()
     cur.close()
     conn.close()
-    print(f"  ✅ Stored {len(chunks)} chunks")
+    print(f"   ✅ Stored {len(chunks)} chunks")
 
 
 if __name__ == "__main__":

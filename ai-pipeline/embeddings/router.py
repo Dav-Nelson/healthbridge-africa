@@ -1,10 +1,26 @@
 # embeddings/router.py — route questions to RAG vs general LLM
+import os
+import sys
+
+# --- PATH & MODULE RESOLUTION FIX ---
+# This ensures that internal imports look relative to the absolute root directory
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)  # Points to 'ai-pipeline'
+project_root = os.path.dirname(parent_dir)  # Points to 'healthbridge-africa' workspace root
+
+if parent_dir not in sys.path:
+    sys.path.insert(0, parent_dir)
+
 from groq import Groq
 from dotenv import load_dotenv
-import os
 from embeddings.memory import is_memory_question, extract_name
 
-load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
+# Target the absolute root workspace env to guarantee API Keys load correctly everywhere
+if os.path.exists(os.path.join(project_root, ".env")):
+    load_dotenv(os.path.join(project_root, ".env"))
+else:
+    load_dotenv(os.path.join(parent_dir, ".env"))
+
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 def classify_question(question: str) -> str:
