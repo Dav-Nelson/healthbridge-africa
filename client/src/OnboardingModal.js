@@ -69,7 +69,9 @@ export default function OnboardingModal({ onComplete }) {
               <option value="Igbo">Igbo</option>
               <option value="Pidgin">Pidgin English</option>
               <option value="Swahili">Swahili (Kiswahili)</option>
+              <option value="Twi">Twi (Akan)</option>
               <option value="Yoruba">Yoruba</option>
+              <option value="Zulu">Zulu (isiZulu)</option>
               <option value="Other">Other Language</option>
             </select>
           </div>
