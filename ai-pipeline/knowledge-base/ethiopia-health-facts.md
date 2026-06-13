@@ -1,3 +1,10 @@
+---
+Country: Ethiopia
+Primary Sources: Federal Ministry of Health (FMoH) Ethiopia, World Health Organization (WHO) Country Office
+Target Regions: Lowland Endemic (Gambela, Afar), Highlands, Rural Agrarian Communities
+Supported Languages: English, Amharic (አማርኛ), Afaan Oromoo
+---
+
 # Ethiopia Health Facts
 
 ## Introduction
@@ -405,7 +412,6 @@ Seek immediate medical attention if:
 * The child cannot drink
 * Severe dehydration develops
 * Vomiting prevents fluid intake
-
 
 ## 12. Maternal Health
 
