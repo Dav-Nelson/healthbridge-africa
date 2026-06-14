@@ -17,6 +17,16 @@ const LANGUAGE_ISO_MAP = {
   'amharic': 'am'
 };
 
+// Helper function
+const getOrCreateSessionId = () => {
+  let sessionId = sessionStorage.getItem('chat_session_id');
+  if (!sessionId) {
+    sessionId = crypto.randomUUID();
+    sessionStorage.setItem('chat_session_id', sessionId);
+  }
+  return sessionId;
+};
+
 export default function App() {
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
@@ -46,13 +56,15 @@ export default function App() {
 
     try {
       const targetCode = getCleanLanguageCode();
+      const sessionId = getOrCreateSessionId();
 
       const response = await fetch(`${API_BASE_URL}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           query: textToProcess, 
-          language: targetCode 
+          language: targetCode,
+          sessionId: sessionId 
         }),
       });
 

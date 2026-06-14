@@ -1,46 +1,52 @@
 const express = require('express');
 const router = express.Router();
 const axios = require('axios');
+const pool = require('../db/index');
 
-// POST /api/chat
 router.post('/', async (req, res) => {
-  const { query, language } = req.body;
+  const { query, language, sessionId } = req.body;
   
-  if (!query) {
-    return res.status(400).json({ error: 'Query is required' });
+  if (!query || !sessionId) {
+    return res.status(400).json({ error: 'Query and sessionId are required' });
   }
 
   try {
-    // Trim slashes and use your explicit live pipeline URL if the environment variable isn't configured on Render yet
-    const AI_PIPELINE_URL = process.env.AI_PIPELINE_URL 
-      ? process.env.AI_PIPELINE_URL.replace(/\/$/, "")
-      : 'https://healthbridge-africa-ai-pipeline.onrender.com';
+    // 1. Save user message to database
+    await pool.query(
+      'INSERT INTO messages (session_id, sender, text) VALUES ($1, $2, $3)',
+      [sessionId, 'user', query]
+    );
 
-    // Forward BOTH the question and the language code down to the Python RAG endpoint
+    // 2. Fetch recent history for context
+    const historyRes = await pool.query(
+      `SELECT sender, text FROM (
+         SELECT sender, text, created_at FROM messages 
+         WHERE session_id = $1 ORDER BY created_at DESC LIMIT 5
+       ) AS recent_messages ORDER BY created_at ASC`,
+      [sessionId]
+    );
+
+    // 3. Send query + history to Python
+    // Python will handle the RAG database search internally
+    const AI_PIPELINE_URL = process.env.AI_PIPELINE_URL || 'https://healthbridge-africa-ai-pipeline.onrender.com';
     const aiPipelineResponse = await axios.post(`${AI_PIPELINE_URL}/ask`, {
       question: query,
-      language: language || 'en'
+      language: language || 'en',
+      history: historyRes.rows
     });
 
-    // Extract data sent back from the Python FastAPI server
-    const { answer, similarity_score, sources, language: detectedLanguage } = aiPipelineResponse.data;
+    const { answer, sources } = aiPipelineResponse.data;
 
-    // Return the response back to your live frontend application
-    res.json({
-      success: true,
-      query,
-      language: detectedLanguage || language || 'english',
-      response: answer,
-      similarity_score,
-      sources,
-      disclaimer: 'This is not medical advice. Please see a doctor for diagnosis and treatment.'
-    });
+    // 4. Save bot response
+    await pool.query(
+      'INSERT INTO messages (session_id, sender, text) VALUES ($1, $2, $3)',
+      [sessionId, 'bot', answer]
+    );
+
+    res.json({ success: true, response: answer, sources });
   } catch (error) {
-    console.error('Chat error connecting to AI Pipeline:', error.message);
-    res.status(500).json({ 
-      error: 'Failed to generate response from AI pipeline',
-      message: error.message 
-    });
+    console.error('Chat error:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 

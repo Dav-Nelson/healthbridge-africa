@@ -1,4 +1,3 @@
-# ai-pipeline/api/main.py
 """
 FastAPI server for HealthBridge Africa AI Pipeline.
 Node.js backend calls these endpoints.
@@ -9,17 +8,13 @@ Run: uvicorn main:app --reload --port 8000
 import os
 import sys
 import shutil
+from typing import List
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse  # Added for streaming generated audio files
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from openai import OpenAI
 from dotenv import load_dotenv
-
-# Make sure rag/ is importable
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from rag.query import ask_rag
-from tts.speak import text_to_speech
 
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 
@@ -56,7 +51,8 @@ app.add_middleware(
 # ── Request models ───────────────────────────────────────
 class QuestionRequest(BaseModel):
     question: str
-    language: str = "en"  # Standard default representation code
+    language: str = "en"
+    history: List[dict] = []  # Added for conversation memory
 
 
 class SpeakRequest(BaseModel):
@@ -100,12 +96,17 @@ def home():
 
 @app.post("/ask")
 async def ask_question(data: QuestionRequest):
-    """Text question → grounded health answer via RAG + Groq."""
+    """Text question → grounded health answer via RAG + Groq (with history)."""
+    # Lazy import prevents heavy AI libraries from loading until actually needed
+    from rag.query import ask_rag
+    
     try:
-        # Convert incoming lang code ("am", "pcm") into full name string ("Amharic", "Nigerian Pidgin")
+        # Convert incoming lang code ("am", "pcm") into full name string
         target_lang_name = get_full_language_name(data.language)
         
-        result = ask_rag(data.question, language=target_lang_name)
+        # Pass history to ask_rag
+        result = ask_rag(data.question, language=target_lang_name, history=data.history)
+        
         return {
             "question": data.question,
             "answer": result["answer"],
@@ -113,13 +114,11 @@ async def ask_question(data: QuestionRequest):
             "sources": result.get("sources", []),
             "language": data.language
         }
-    except FileNotFoundError:
-        raise HTTPException(
-            status_code=503,
-            detail="Knowledge base not ready. Run ingest.py first."
-        )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        # Log the specific error for debugging
+        print(f"Error in /ask: {str(e)}")
+        # Raise an HTTP exception to notify the client
+        raise HTTPException(status_code=500, detail="Error processing your health query.")
 
 
 @app.post("/transcribe")
@@ -183,9 +182,8 @@ async def voice_agent(
             )
         
         user_text = transcription.get("text", "") if isinstance(transcription, dict) else transcription.text
-        print(f"STT result: {user_text} | Target Language Prompt: {language}")
         
-        # Step 2: RAG answer - Convert 'am'/'pcm' code to 'Amharic'/'Nigerian Pidgin' string
+        # Step 2: RAG answer
         target_lang_name = get_full_language_name(language)
         rag_result = ask_rag(user_text, language=target_lang_name)
         
@@ -203,7 +201,7 @@ async def voice_agent(
     finally:
         if os.path.exists(temp_path):
             os.remove(temp_path)
-            
+
 
 @app.post("/voice-chat")
 async def voice_chat(
@@ -211,6 +209,10 @@ async def voice_chat(
     language: str = "en"
 ):
     """Complete End-To-End Loop: Audio Input → STT → RAG Engine → Audio Output Synthesis"""
+    # Lazy imports: only load heavy AI modules when this endpoint is hit
+    from rag.query import ask_rag
+    from tts.speak import text_to_speech
+    
     temp_path = f"temp_{file.filename}"
 
     try:
@@ -229,25 +231,25 @@ async def voice_chat(
 
         user_text = transcription.get("text", "") if isinstance(transcription, dict) else transcription.text
 
-        # Step 2: Grounded RAG Query Processing passing explicit language formatting instructions
+        # Step 2: Grounded RAG Query Processing
         target_lang_name = get_full_language_name(language)
         rag_result = ask_rag(user_text, language=target_lang_name)
 
         # Step 3: Text-To-Speech Synthesis processing native response string
         audio_response = text_to_speech(rag_result["answer"], target_lang_name)
 
-        # Normalize the audio format string so the frontend doesn't crash
         raw_audio = audio_response.split(",")[1] if (isinstance(audio_response, str) and "data:audio/" in audio_response) else audio_response
 
         return {
             "user_text": user_text,
             "answer": rag_result["answer"],
-            "audio_file": audio_response, # Kept for backward compatibility match
-            "audio": raw_audio,           # Clean explicit Base64 payload reference
+            "audio_file": audio_response,
+            "audio": raw_audio,
             "sources": rag_result.get("sources", [])
         }
 
     except Exception as e:
+        print(f"Error in /voice-chat: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
     finally:
@@ -261,25 +263,24 @@ async def speak(data: SpeakRequest):
     Standalone Text-to-Speech Engine Endpoint.
     Delivers base64 or file data dynamically back to client architecture.
     """
+    # Lazy import prevents heavy TTS library from loading until called
+    from tts.speak import text_to_speech
+    
     try:
         if not data.text:
             raise HTTPException(status_code=400, detail="Text payload parameter cannot be empty")
             
         target_lang_name = get_full_language_name(data.language)
         
-        # Synthesize audio data via internal pipeline processing modules
         audio_result = text_to_speech(data.text, target_lang_name)
         
-        # FIX: If the TTS engine returns a raw base64 URI stream directly, return it as JSON immediately
         if isinstance(audio_result, str) and audio_result.startswith("data:audio/"):
-            # Extract raw base64 body if it contains the metadata header prefix
             raw_base64 = audio_result.split(",")[1] if "," in audio_result else audio_result
             return {
                 "status": "success",
                 "audio": raw_base64
             }
             
-        # Fallback directory disk checks if a standard short filename configuration string is returned
         base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
         static_dir = os.path.join(base_dir, "static")
         

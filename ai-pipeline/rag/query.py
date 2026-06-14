@@ -1,126 +1,89 @@
 import os
-import sys
+import psycopg2
+from sentence_transformers import SentenceTransformer
 from openai import OpenAI
 from dotenv import load_dotenv
 
-# Ensure environment variables are loaded securely
 load_dotenv()
 
-# Initialize the Groq client context explicitly inside this module
+# Initialize clients
 client = OpenAI(
     api_key=os.environ.get("GROQ_API_KEY"),
     base_url="https://api.groq.com/openai/v1"
 )
+model = SentenceTransformer("all-MiniLM-L6-v2")
 
-# --- UNCOMMENTED AND ACTIVE IMPORT ---
-try:
-    from rag.vector_store import search_documents
-except ImportError:
-    # Fail-safe backup if the absolute package path resolves differently on production
-    try:
-        from vector_store import search_documents
-    except ImportError:
-        search_documents = None
-
-def ask_rag(question: str, language: str = "English") -> dict:
-    """Full RAG: search knowledge base, then answer with Groq Llama 3 in the target language."""
+def ask_rag(question: str, language: str = "English", history: list = []) -> dict:
+    """Full RAG: Embed query, search Neon DB, then answer with Groq Llama 3."""
     
-    # --- STABILIZED CROSS-LINGUAL ALIGNMENT FIX ---
+    # 1. Translate query to English for consistent vector search
     search_query = question
     try:
-        translation_response = client.chat.completions.create(
-            model="llama-3.1-8b-instant",  # FIXED: Swapped to high-limit, fast model
+        trans_res = client.chat.completions.create(
+            model="llama-3.1-8b-instant",
             messages=[
-                {
-                    "role": "system", 
-                    "content": "You are a professional medical translator. Translate the user query strictly into English. If the query is already in English, return it exactly as it is. Return ONLY the plain English translation, nothing else."
-                },
+                {"role": "system", "content": "Translate the query strictly to English. Return ONLY the English text."},
                 {"role": "user", "content": question}
             ],
             max_tokens=100,
             temperature=0.0
         )
-        translated_text = translation_response.choices[0].message.content.strip()
-        if translated_text:
-            search_query = translated_text
-        print(f"[RAG Translation Log] Input: '{question}' -> Unified Search Term: '{search_query}'")
+        search_query = trans_res.choices[0].message.content.strip() or question
     except Exception as e:
-        print(f"Translation preprocessing routing failed: {e}")
-        search_query = question # Fallback baseline
-    # ------------------------------------
+        print(f"Translation failed: {e}")
 
-    # --- SAFE VECTOR RETRIEVAL RUNNER ---
-    top_chunks = []
-    if search_documents is not None:
-        try:
-            top_chunks = search_documents(search_query, top_k=3)
-        except Exception as e:
-            print(f"Vector store query execution failed: {e}")
-            top_chunks = []
-    else:
-        print("Warning: search_documents function import was not resolved.")
+    # 2. Vector Search in Neon DB
+    query_embedding = model.encode(search_query).tolist()
+    
+    conn = psycopg2.connect(os.environ.get("DATABASE_URL"))
+    cur = conn.cursor()
+    
+    cur.execute("""
+        SELECT text, source_name, 1 - (embedding <=> %s::vector) as score 
+        FROM knowledge_base 
+        ORDER BY embedding <=> %s::vector 
+        LIMIT 3
+    """, (str(query_embedding), str(query_embedding)))
+    
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
 
-    # Emergency medical database fallback layer to guarantee uptime for deadline submissions
-    if not top_chunks:
-        top_chunks = [{
-            "text": "Malaria is a serious and sometimes fatal disease caused by a parasite that commonly infects a certain type of mosquito which feeds on humans. People who get malaria are typically very sick with high fevers, shaking chills, and flu-like illness.",
-            "score": 0.90,
-            "source": "Emergency Fallback Knowledge Base"
-        }]
-    # ------------------------------------
-        
-    best_score = top_chunks[0]["score"]
-
-    if best_score < 0.45:
+    # 3. Handle Empty Results
+    if not rows or rows[0][2] < 0.45:
         return {
-            "answer": (
-                f"I could not find sufficiently reliable information in the "
-                f"HealthBridge knowledge base regarding your question. "
-                f"Please consult a professional medical healthcare worker."
-            ),
-            "context": "",
-            "score": round(best_score, 4),
+            "answer": f"I'm not fully certain about that in the HealthBridge knowledge base. Please consult a healthcare professional.",
+            "score": 0.0,
             "sources": []
         }
-    
-    context_parts = []
-    for chunk in top_chunks:
-        context_parts.append(
-            f"[Source: {chunk.get('source', 'Health Document')}]\n{chunk['text']}"
-        )
-    context = "\n\n".join(context_parts)
-    context = context[:6000]
-    
-    # Dynamic language instructions guiding Llama 3 generation properties
+
+    # 4. Construct Context
+    context = "\n\n".join([f"[Source: {row[1]}]\n{row[0]}" for row in rows])
+    sources = list(set([row[1] for row in rows]))
+    best_score = float(rows[0][2])
+
+    # 5. LLM Response Generation
     system_instruction = (
-        f"You are HealthBridge Africa's health information assistant.\n"
-        f"CRITICAL: You MUST respond entirely in the following language/dialect: {language}.\n"
-        f"Translate the health insights accurately into the tone and style of {language} while keeping the medical facts identical.\n"
-        f"Use ONLY the supplied context. Never diagnose diseases. Never prescribe medication. "
-        f"Never invent medical information. If the answer is not in the context, say so clearly. "
-        f"Always recommend professional medical care when symptoms are severe or persistent. "
-        f"Keep responses simple and easy to understand."
+        f"You are a warm, professional health assistant. Answer in {language}. "
+        f"Use the context provided as your primary source of truth.\n\nContext:\n{context}"
     )
     
+    messages = [{"role": "system", "content": system_instruction}]
+    for msg in history:
+        role = "assistant" if msg.get("sender") == "bot" else "user"
+        messages.append({"role": role, "content": msg.get("text", "")})
+    
+    messages.append({"role": "user", "content": question})
+    
     response = client.chat.completions.create(
-        model="llama-3.1-8b-instant",  # FIXED: Swapped to high-limit, fast model
-        messages=[
-            {
-                "role": "system",
-                "content": system_instruction
-            },
-            {
-                "role": "user",
-                "content": f"Context:\n{context}\n\nQuestion: {question}" 
-            }
-        ],
+        model="llama-3.1-8b-instant",
+        messages=messages,
         max_tokens=500,
-        temperature=0.3  
+        temperature=0.3
     )
     
     return {
         "answer": response.choices[0].message.content,
-        "context": context,
-        "score": round(top_chunks[0]["score"], 4),
-        "sources": list(set([c.get("source", "unknown") for c in top_chunks]))
+        "score": round(best_score, 4),
+        "sources": sources
     }
