@@ -58,7 +58,7 @@ export default function ChatDisplay({ messages, isLoading, language }) {
               <p className="leading-relaxed text-sm md:text-base whitespace-pre-line">{msg.text}</p>
             </div>
           ) : (
-            <div key={index} className="max-w-[92%] md:max-w-[80%] rounded-2xl bg-slate-50 border border-slate-200/80 self-start rounded-bl-none shadow-md overflow-hidden flex flex-col h-auto">
+            <div key={index} className="w-full max-w-[92%] md:max-w-[80%] rounded-2xl bg-slate-50 border border-slate-200/80 self-start rounded-bl-none shadow-md flex flex-col h-auto">
               
               {/* Medical Card Header Accent */}
               <div className="bg-gradient-to-r from-teal-700 to-teal-600 px-4 py-2 flex items-center justify-between border-b border-teal-800/10">
