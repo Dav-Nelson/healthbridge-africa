@@ -1,14 +1,13 @@
 import os
+import time
 import psycopg2
 from dotenv import load_dotenv
-from sentence_transformers import SentenceTransformer
+from google import genai
+from google.genai import types
 
-load_dotenv(dotenv_path="ai-pipeline/.env")
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "..", ".env"))
 
-conn = psycopg2.connect(os.getenv("DATABASE_URL"))
-cur = conn.cursor()
-
-embed_model = SentenceTransformer("all-MiniLM-L6-v2")
+client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 
 def chunk_text(text: str, chunk_size: int = 300, overlap: int = 50) -> list:
@@ -23,23 +22,43 @@ def chunk_text(text: str, chunk_size: int = 300, overlap: int = 50) -> list:
     return chunks
 
 
-def ingest_file_to_db(filepath, source_name):
+def get_embedding(text: str, task_type: str = "RETRIEVAL_DOCUMENT") -> list:
+    """Generate a normalized 768-dim embedding via Gemini API."""
+    result = client.models.embed_content(
+        model="gemini-embedding-001",
+        contents=text,
+        config=types.EmbedContentConfig(
+            task_type=task_type,
+            output_dimensionality=768
+        )
+    )
+    vector = result.embeddings[0].values
+
+    norm = sum(v * v for v in vector) ** 0.5
+    normalized = [v / norm for v in vector] if norm > 0 else vector
+    return normalized
+
+
+def ingest_file_to_db(filepath, source_name, cur):
     print(f"Ingesting {source_name} into DB...")
     with open(filepath, "r", encoding="utf-8") as f:
         text = f.read()
 
     chunks = chunk_text(text)
     for i, chunk in enumerate(chunks):
-        embedding = embed_model.encode(chunk).tolist()
+        embedding = get_embedding(chunk, task_type="RETRIEVAL_DOCUMENT")
         cur.execute(
             "INSERT INTO knowledge_base (source_name, chunk_index, text, embedding) VALUES (%s, %s, %s, %s)",
             (source_name, i, chunk, embedding)
         )
-    conn.commit()
+        time.sleep(0.5)
     print(f"✅ Stored {len(chunks)} chunks.")
 
 
-if __name__ == "__main__":
+def main():
+    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+    cur = conn.cursor()
+
     docs = [
         ("ai-pipeline/knowledge-base/ethiopia-health-facts.md", "Ethiopia Health Facts"),
         ("ai-pipeline/knowledge-base/ghana-health-facts.md", "Ghana Health Facts"),
@@ -49,7 +68,12 @@ if __name__ == "__main__":
     ]
 
     for path, name in docs:
-        ingest_file_to_db(path, name)
+        ingest_file_to_db(path, name, cur)
+        conn.commit()
 
     cur.close()
     conn.close()
+
+
+if __name__ == "__main__":
+    main()
