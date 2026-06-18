@@ -1,13 +1,11 @@
 import React, { useState, useRef } from 'react';
-import { Mic, Square, Send, MessageSquare, Settings, History, HelpCircle, Menu, X } from 'lucide-react'; // Added Menu and X icons for mobile
+import { Mic, Square, Send, MessageSquare, Settings, History, HelpCircle, Menu, X } from 'lucide-react';
 import Header from './components/Header';
-// import Footer from './components/Footer';
 import ChatDisplay from './components/ChatDisplay';
 import OnboardingModal from './OnboardingModal';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
-// ISO Language mapping layer supporting Amharic
 const LANGUAGE_ISO_MAP = {
   'english': 'en',
   'pidgin': 'pcm',
@@ -17,7 +15,6 @@ const LANGUAGE_ISO_MAP = {
   'amharic': 'am'
 };
 
-// Helper function
 const getOrCreateSessionId = () => {
   let sessionId = sessionStorage.getItem('chat_session_id');
   if (!sessionId) {
@@ -32,10 +29,9 @@ export default function App() {
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
-  const [language, setLanguage] = useState('English'); 
+  const [language, setLanguage] = useState('English');
   const [showOnboarding, setShowOnboarding] = useState(true);
 
-  // --- NEW STATES FOR MOBILE RESPONSIVENESS & TABS ---
   const [activeTab, setActiveTab] = useState('consultation');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -58,23 +54,23 @@ export default function App() {
       const targetCode = getCleanLanguageCode();
       const sessionId = getOrCreateSessionId();
 
-      const response = await fetch(`${API_BASE_URL}/api/chat`, {
+      const response = await fetch(`${API_BASE_URL}/api/voice/text-chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          query: textToProcess, 
+        body: JSON.stringify({
+          message: textToProcess,
           language: targetCode,
-          sessionId: sessionId 
+          sessionId: sessionId
         }),
       });
 
       if (!response.ok) throw new Error('API response failed');
       const data = await response.json();
-      
-      setMessages(prev => [...prev, { 
-        sender: 'bot', 
+
+      setMessages(prev => [...prev, {
+        sender: 'bot',
         text: data.response,
-        imageUrl: data.imageUrl || null 
+        language: targetCode
       }]);
     } catch (error) {
       console.error("Chat Error:", error);
@@ -123,60 +119,69 @@ export default function App() {
 
   const processVoiceAudio = async (audioBlob) => {
     setIsLoading(true);
+    const targetCode = getCleanLanguageCode();
+    const sessionId = getOrCreateSessionId();
+
     const formData = new FormData();
     formData.append('audio', audioBlob, 'recording.webm');
+    formData.append('language', targetCode);
+    formData.append('sessionId', sessionId);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/voice/transcribe`, {
+      const response = await fetch(`${API_BASE_URL}/api/voice/chat`, {
         method: 'POST',
         body: formData,
       });
 
-      if (!response.ok) throw new Error('Transcription failed');
-      
-      const data = await response.json();
-      const transcribedText = data.text || data.transcription;
+      if (!response.ok) throw new Error('Voice chat failed');
 
-      if (transcribedText) {
-         await handleSendMessage(transcribedText);
+      const data = await response.json();
+
+      if (data.transcribed) {
+        setMessages(prev => [...prev, { sender: 'user', text: data.transcribed }]);
       }
+
+      setMessages(prev => [...prev, {
+        sender: 'bot',
+        text: data.response,
+        language: targetCode
+      }]);
     } catch (error) {
-      console.error("Transcription Error:", error);
+      console.error("Voice Chat Error:", error);
       setMessages(prev => [...prev, { sender: 'bot', text: "Sorry, I couldn't process your voice message." }]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // --- UPDATED TRANSLATION DICTIONARY WITH LEGAL DISCLAIMERS ---
   const inputTranslations = {
-    English: { 
-      placeholder: "Type your health question...", 
+    English: {
+      placeholder: "Type your health question...",
       recording: "Listening...",
       disclaimer: "This system is not a substitute for professional medical advice. Always consult a certified doctor."
     },
-    Pidgin: { 
-      placeholder: "Type your health question...", 
+    Pidgin: {
+      placeholder: "Type your health question...",
       recording: "I dey listen...",
       disclaimer: "This system no be doctor substitute. Make you always check certified doctor."
     },
-    Swahili: { 
-      placeholder: "Andika swali lako la afya...", 
+    Swahili: {
+      placeholder: "Andika swali lako la afya...",
       recording: "Inasikiliza...",
       disclaimer: "Mfumo huu sio mbadala wa ushauri wa kitaalamu wa matibabu. Daima shauriana na daktari aliyethibitishwa."
     },
-    Oromo: { 
-      placeholder: "Gaaffii fayyaa kee barreessi...", 
+    Oromo: {
+      placeholder: "Gaaffii fayyaa kee barreessi...",
       recording: "Dhaggeeffachaa jira...",
       disclaimer: "Sirni kun gorsa yaala ogeessaa bakka hin bu'u. Yeroo mara ogeessa fayyaa hayyama qabu mariisisi."
     },
-    Twi: { 
-      placeholder: "Kyerɛw wo apɔwmuden asɛm...", 
+    Twi: {
+      placeholder: "Kyerɛw wo apɔwmuden asɛm...",
       recording: "Mretie...",
       disclaimer: "Eyi nsi aduruyɛ ho afutuo ananmu. Bere biara kɔbɔ oduruyɛfoɔ a ɔwɔ tumi krataa kɔkɔ."
     },
-    Amharic: { 
-      placeholder: "የጤና ጥያቄዎን እዚህ ይጻፉ...", 
+    Amharic: {
+      placeholder: "የጤና ጥያቄዎን እዚህ ይጻፉ...",
       recording: "እያዳመጥኩ ነው...",
       disclaimer: "ይህ ዘዴ የባለሙያ የህክምና ምክርን አይተካም። ሁልጊዜ የተረጋገጠ ዶክተር ያማክሩ።"
     }
@@ -186,22 +191,24 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex font-sans antialiased overflow-hidden relative">
-      
+
       {showOnboarding && (
-        <OnboardingModal onComplete={() => setShowOnboarding(false)} />
+        <OnboardingModal onComplete={(selectedLanguage) => {
+          if (selectedLanguage) setLanguage(selectedLanguage);
+          setShowOnboarding(false);
+        }} />
       )}
 
-      {/* 📱 1. MOBILE SLIDE-OUT MENU DRAWER (Hidden on desktop screens via 'md:hidden') */}
-      <div 
+      <div
         className={`fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm transition-opacity duration-300 ${
           isMobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-        } md:hidden`} 
+        } md:hidden`}
         onClick={() => setIsMobileMenuOpen(false)}
       >
-        <aside 
+        <aside
           className={`w-72 bg-slate-900 h-screen p-6 text-slate-400 flex flex-col justify-between transform transition-transform duration-300 ease-out ${
             isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
-          }`} 
+          }`}
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex flex-col gap-6 w-full">
@@ -209,18 +216,18 @@ export default function App() {
               <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-teal-500 to-emerald-400 flex items-center justify-center text-white shadow-md font-bold text-lg">
                 HB
               </div>
-              <button 
-                onClick={() => setIsMobileMenuOpen(false)} 
+              <button
+                onClick={() => setIsMobileMenuOpen(false)}
                 className="p-2 hover:bg-slate-800 rounded-lg text-slate-400"
               >
                 <X size={20} />
               </button>
             </div>
             <hr className="border-slate-800" />
-            
+
             <nav className="flex flex-col gap-2">
-              <button 
-                onClick={() => { setActiveTab('consultation'); setIsMobileMenuOpen(false); }} 
+              <button
+                onClick={() => { setActiveTab('consultation'); setIsMobileMenuOpen(false); }}
                 className={`flex items-center gap-3 w-full p-3.5 rounded-xl font-medium transition ${
                   activeTab === 'consultation' ? 'bg-slate-800 text-teal-400' : 'hover:bg-slate-800/50 hover:text-slate-200'
                 }`}
@@ -228,8 +235,8 @@ export default function App() {
                 <MessageSquare size={20} />
                 <span>Consultation Room</span>
               </button>
-              <button 
-                onClick={() => { setActiveTab('history'); setIsMobileMenuOpen(false); }} 
+              <button
+                onClick={() => { setActiveTab('history'); setIsMobileMenuOpen(false); }}
                 className={`flex items-center gap-3 w-full p-3.5 rounded-xl font-medium transition ${
                   activeTab === 'history' ? 'bg-slate-800 text-teal-400' : 'hover:bg-slate-800/50 hover:text-slate-200'
                 }`}
@@ -245,8 +252,8 @@ export default function App() {
               <HelpCircle size={20} />
               <span>Help & FAQ</span>
             </button>
-            <button 
-              onClick={() => { setActiveTab('settings'); setIsMobileMenuOpen(false); }} 
+            <button
+              onClick={() => { setActiveTab('settings'); setIsMobileMenuOpen(false); }}
               className={`flex items-center gap-3 w-full p-3.5 rounded-xl font-medium transition ${
                 activeTab === 'settings' ? 'bg-slate-800 text-teal-400' : 'hover:bg-slate-800/50 hover:text-slate-200'
               }`}
@@ -258,16 +265,15 @@ export default function App() {
         </aside>
       </div>
 
-      {/* 🧭 2. DESKTOP PERMANENT SIDEBAR CONTAINER (Hidden on mobile via 'hidden md:flex') */}
       <aside className="hidden md:flex w-20 bg-slate-900 h-screen flex flex-col items-center justify-between py-6 text-slate-400 border-r border-slate-800 flex-shrink-0">
         <div className="flex flex-col items-center gap-6 w-full">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-teal-500 to-emerald-400 flex items-center justify-center text-white shadow-md shadow-teal-900/30 font-bold text-lg">
             HB
           </div>
           <hr className="w-8 border-slate-800" />
-          
-          <button 
-            onClick={() => setActiveTab('consultation')} 
+
+          <button
+            onClick={() => setActiveTab('consultation')}
             className={`p-3 rounded-xl transition relative group ${
               activeTab === 'consultation' ? 'bg-slate-800 text-teal-400 shadow-inner' : 'hover:text-slate-200'
             }`}
@@ -275,8 +281,8 @@ export default function App() {
             <MessageSquare size={22} />
             <span className="absolute left-full ml-4 px-2 py-1 bg-slate-950 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition whitespace-nowrap z-50 shadow-xl pointer-events-none">Consultation</span>
           </button>
-          <button 
-            onClick={() => setActiveTab('history')} 
+          <button
+            onClick={() => setActiveTab('history')}
             className={`p-3 rounded-xl transition relative group ${
               activeTab === 'history' ? 'bg-slate-800 text-teal-400 shadow-inner' : 'hover:text-slate-200'
             }`}
@@ -290,8 +296,8 @@ export default function App() {
           <button className="p-3 hover:bg-slate-800 hover:text-slate-200 rounded-xl transition">
             <HelpCircle size={22} />
           </button>
-          <button 
-            onClick={() => setActiveTab('settings')} 
+          <button
+            onClick={() => setActiveTab('settings')}
             className={`p-3 rounded-xl transition relative group ${
               activeTab === 'settings' ? 'bg-slate-800 text-teal-400 shadow-inner' : 'hover:text-slate-200'
             }`}
@@ -302,13 +308,11 @@ export default function App() {
         </div>
       </aside>
 
-      {/* 🖥️ 3. CORE APPLICATIVE CONTAINER LAYOUT */}
       <div className="flex-1 flex flex-col h-screen overflow-hidden">
-        
-        {/* Header flex bar wrapping the dynamic mobile anchor toggle */}
+
         <div className="flex items-center bg-white border-b border-slate-200 px-4 md:px-0">
-          <button 
-            onClick={() => setIsMobileMenuOpen(true)} 
+          <button
+            onClick={() => setIsMobileMenuOpen(true)}
             className="p-2 mr-1 text-slate-600 hover:bg-slate-50 rounded-lg block md:hidden transition"
           >
             <Menu size={24} />
@@ -318,15 +322,14 @@ export default function App() {
           </div>
         </div>
 
-        {/* Viewport content switcher dependent on tab selections */}
         <main className="flex-grow flex flex-col max-w-4xl mx-auto w-full px-4 md:px-6 pt-4 pb-6 h-[calc(100vh-80px)] overflow-hidden">
-          
+
           {activeTab === 'consultation' && (
             <>
-              <ChatDisplay 
-                messages={messages} 
-                isLoading={isLoading} 
-                language={getCleanLanguageCode()} 
+              <ChatDisplay
+                messages={messages}
+                isLoading={isLoading}
+                language={getCleanLanguageCode()}
               />
 
               <div className="bg-white rounded-2xl shadow-md shadow-slate-100/80 border border-slate-200 p-3 md:p-4 flex-shrink-0">
@@ -335,8 +338,8 @@ export default function App() {
                     type="button"
                     onClick={isRecording ? stopRecording : startRecording}
                     className={`p-3.5 md:p-4 rounded-xl flex-shrink-0 transition-all ${
-                      isRecording 
-                        ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse shadow-lg shadow-red-200' 
+                      isRecording
+                        ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse shadow-lg shadow-red-200'
                         : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
                     }`}
                   >
@@ -360,7 +363,7 @@ export default function App() {
                     <Send size={18} />
                   </button>
                 </form>
-                
+
                 <p className="text-[10px] md:text-[11px] text-slate-400 text-center mt-3 font-medium px-2">
                   {tInput.disclaimer}
                 </p>

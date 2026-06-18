@@ -18,32 +18,60 @@ Preventable conditions become emergencies.
 ## Our solution
 
 HealthBridge Africa is a voice-first AI health agent that lets people across
-Africa speak in their local language. Nigerian Pidgin, Amharic, Swahili,
-or African English, and receive grounded, reliable health guidance drawn
-from verified sources like WHO guidelines and African Ministry of Health
-documents.
+Africa speak or type in their local language — English, Nigerian Pidgin,
+Swahili, Oromo, Twi, or Amharic — and receive grounded, conversational health
+guidance drawn from a curated knowledge base built on WHO guidelines and
+country-level health facts for Nigeria, Ghana, Ethiopia, and Kenya.
+
+The assistant remembers context across a conversation, asks clarifying
+questions rather than giving flat one-shot answers, and responds in text
+first — with an option to play the response back as audio.
 
 **It does not replace doctors. It helps people know when to see one.**
 
 ---
 
 ## How it works
+User speaks or types (English · Pidgin · Swahili · Oromo · Twi · Amharic)
 
-```
-User speaks (Pidgin · Oromo · Swahili · African English)
-        ↓
-Whisper STT → converts speech to text
-        ↓
-Embed query → semantic search over health knowledge base
-        ↓
-pgvector retrieves relevant WHO / MOH document chunks
-        ↓
-LLM generates grounded response from retrieved context only
-        ↓
-Kokoro TTS → converts response to natural voice audio
-        ↓
-User hears answer in accessible, clear Language
-```
+↓
+
+Express.js gateway (Node.js) — routes by payload type
+
+↓
+
+┌──────────────────────────────────────┐
+
+│   FastAPI pipeline (Render)            │
+
+│                                         │
+
+│ 1. Whisper STT (Groq)                  │ → voice to text
+
+│ 2. Cross-lingual alignment             │ → Llama-3.1-8B, standardizes
+
+│                                          │   query to English for search
+
+│ 3. Semantic retrieval                  │ → pgvector on Neon, top-k=3
+
+│                                          │   grounded health chunks
+
+│ 4. Conversational RAG inference        │ → Llama-3.1-8B-Instant, answers
+
+│                                          │   in the user's language, with
+
+│                                          │   conversation history
+
+│ 5. Audio synthesis (on demand)         │ → gTTS, in-memory, Base64
+
+└──────────────────────────────────────┘
+
+↓
+
+Text response shown immediately → user can tap "Listen" for voice playback
+Conversation history is stored in Neon Postgres per session, so the
+assistant can refer back to earlier parts of the conversation and ask
+follow-up questions instead of treating every message as a cold start.
 
 ---
 
@@ -51,27 +79,53 @@ User hears answer in accessible, clear Language
 
 | Layer | Technology | Why |
 |-------|-----------|-----|
-| Frontend | React | Voice-friendly component UI |
-| Backend | Node.js + Express | PERN stack, orchestration layer |
-| Database | PostgreSQL + pgvector (Supabase) | Data + vector embeddings in one place |
-| STT | Whisper via Groq API | Multilingual, fast, free tier |
-| TTS | Kokoro TTS | Open source, natural voice output |
-| Voice pipeline | Pipecat | VAD + STT + LLM + TTS orchestration |
-| LLM | Groq / Claude API | Fast grounded inference, free tiers |
-| RAG | pgvector + embeddings | Retrieval over curated health documents |
-| CI/CD | GitHub Actions | Automated tests on every pull request |
-| Hosting | Render | Free tier, public internet from Week 2 |
-| Analytics | PostHog | Session tracking and observability |
+| Frontend | React (Create React App) + Tailwind CSS | Fast iteration, component-based UI |
+| Gateway | Node.js + Express | Public-facing proxy, isolates the AI pipeline from direct internet traffic |
+| AI Pipeline | FastAPI (Python) | Stateless, containerized RAG orchestration |
+| Database | PostgreSQL + pgvector (Neon) | Conversation history + vector embeddings in one place, free tier |
+| STT | Whisper-large-v3 via Groq API | Fast, multilingual, generous free tier |
+| Translation | Llama-3.1-8B (temp=0.0) via Groq | Deterministic cross-lingual alignment before retrieval |
+| LLM (inference) | Llama-3.1-8B-Instant via Groq | Fast, conversational, grounded responses; high free-tier limits |
+| Embeddings | sentence-transformers (all-MiniLM-L6-v2) | Local, free, no API cost for retrieval |
+| TTS | gTTS | Free, in-memory synthesis, regional accent routing for English |
+| Analytics | PostHog | Session tracking, location and language insights |
+| Hosting (frontend) | Vercel | Free tier, instant deploys |
+| Hosting (pipeline + gateway) | Render | Free tier, containerized services |
+| CI | GitHub Actions | Backend and frontend test suites run independently on every push |
+
+---
+
+## Supported languages
+
+English, Nigerian Pidgin, Swahili, Oromo, Twi, Amharic.
+
+Voice transcription accuracy is strongest for English, Swahili, and Amharic,
+which Whisper-large-v3 supports natively. Pidgin and Twi voice input
+currently routes through English-mode transcription as a stopgap, since
+Whisper does not have dedicated support for either — typed input in these
+languages does not have this limitation, since translation (via Llama-3.1-8B)
+handles them independently of speech recognition.
+
+Audio playback uses a West African-accented English voice (via gTTS's
+`com.ng` regional routing) for English, Pidgin, and as the fallback voice
+for Twi and Oromo. Swahili and Amharic use their own native gTTS voices.
+Twi has no dedicated voice in any free TTS engine we evaluated; this is a
+known limitation, not a configuration gap.
 
 ---
 
 ## Knowledge base sources
 
 - World Health Organization (WHO) guidelines
-- Nigerian Federal Ministry of Health (FMOH)
-- Ethiopian Ministry of Health
-- Ghana Health Service
-- Kenya Ministry of Health
+- Nigeria health facts
+- Ghana health facts
+- Ethiopia health facts
+- Kenya health facts
+
+Knowledge base documents are chunked, embedded locally with
+sentence-transformers, and stored in Neon Postgres with pgvector for
+semantic retrieval. See `ai-pipeline/knowledge-base/sources.md` for full
+source attribution.
 
 ---
 
@@ -79,10 +133,10 @@ User hears answer in accessible, clear Language
 
 | Name | Country | Role |
 |------|---------|------|
-| David Nelson | Nigeria 🇳🇬 | System Design · Backend development · 
-| Ibukun Oluwafemi | Nigeria 🇳🇬 | Frontend developer · UI/UX | Health domain |
-| Ibsa Magarsa | Ethiopia 🇪🇹 | AI pipeline · Python · Amharic validation |
-| Peggy Eyram Attah | Ghana 🇬🇭 | User research · Tester recruitment · Twi validation |
+| David Nelson | Nigeria 🇳🇬 | Team lead · backend & architecture · code review |
+| Ibukun Oluwafemi | Nigeria 🇳🇬 | Frontend developer · UI/UX |
+| Ibsa Magarsa | Ethiopia 🇪🇹 | AI pipeline · Python · Amharic & Oromo validation |
+| Peggy Eyram Attah | Ghana 🇬🇭 | User research · tester recruitment · Twi validation |
 
 ---
 
@@ -91,37 +145,81 @@ User hears answer in accessible, clear Language
 ```bash
 # Clone the repo
 git clone https://github.com/Dav-Nelson/healthbridge-africa.git
-
-# Navigate into the project
 cd healthbridge-africa
 
-# Install dependencies
+# Install backend dependencies
 npm install
 
-# Set up environment variables
-cp .env.example .env
-# Fill in your API keys: Groq, Supabase, PostHog
+# Install frontend dependencies
+cd client && npm install && cd ..
 
-# Run development server
+# Install AI pipeline dependencies
+cd ai-pipeline && pip install -r requirements.txt && cd ..
+
+# Set up environment variables (repeat for client/ and ai-pipeline/ as needed)
+cp .env.example .env
+# Fill in: GROQ_API_KEY, DATABASE_URL (Neon), PostHog key
+
+# Run the backend
 npm run dev
+
+# Run the frontend (separate terminal)
+cd client && npm start
+
+# Run the AI pipeline (separate terminal, from ai-pipeline/)
+uvicorn api.main:app --reload --port 8000
 ```
+
+---
+
+## Running tests
+
+```bash
+# Backend tests (Express routes)
+npm test
+
+# Frontend tests (React components)
+cd client && npm test -- --watchAll=false
+```
+
+These are scoped independently — the root test command only runs backend
+tests, and the frontend has its own React-aware test runner.
 
 ---
 
 ## Project structure
 
-```
 healthbridge-africa/
-├── client/          # React frontend
-├── server/          # Node.js + Express backend
-│   ├── routes/      # API routes
-│   ├── services/    # Voice pipeline, RAG, LLM services
-│   └── db/          # PostgreSQL + pgvector setup
-├── knowledge-base/  # Curated health documents (WHO, MOH)
-├── tests/           # Unit and integration tests
+
+├── client/                  # React frontend
+
+│   └── src/
+
+│       ├── components/      # Header, ChatDisplay, BotMessageBubble, etc.
+
+│       └── App.js
+
+├── server/                  # Node.js + Express gateway
+
+│   ├── routes/               # voice.js (chat, text-chat, speak), health.js
+
+│   └── db/                   # Neon Postgres connection
+
+├── ai-pipeline/              # FastAPI RAG + voice pipeline
+
+│   ├── api/                  # main.py — /ask, /transcribe, /speak
+
+│   ├── rag/                  # query.py, ingest_to_db.py
+
+│   ├── tts/                  # speak.py
+
+│   └── knowledge-base/       # Curated health documents (WHO, country facts)
+
+├── tests/                    # Backend test suite
+
 └── .github/
-    └── workflows/   # GitHub Actions CI/CD
-```
+
+└── workflows/             # CI — backend + frontend tests on every push
 
 ---
 
@@ -131,19 +229,6 @@ HealthBridge Africa is an information and triage tool only.
 It does not diagnose, prescribe, or replace professional medical advice.
 Every response includes guidance on whether to seek professional care.
 Always consult a qualified healthcare provider for medical decisions.
-
----
-
-## The Build — weekly progress
-
-| Week | Focus | Status |
-|------|-------|--------|
-| Week 1 | Problem & Blueprint | ✅ Complete |
-| Week 2 | First Cut & Go Live | 🔄 In progress |
-| Week 3 | The Hard Part | ⏳ Upcoming |
-| Week 4 | The Noise | ⏳ Upcoming |
-| Week 5 | The Hardening | ⏳ Upcoming |
-| Week 6 | The Ship | ⏳ Upcoming |
 
 ---
 

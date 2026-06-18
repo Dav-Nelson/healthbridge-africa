@@ -17,7 +17,6 @@ app.get('/health', (req, res) => res.status(200).json({ status: 'ok' }));
 
 app.use('/api/health', require('./routes/health'));
 app.use('/api/voice', require('./routes/voice'));
-app.use('/api/chat', require('./routes/chat'));
 
 app.get('/', (req, res) => {
   res.json({ 
