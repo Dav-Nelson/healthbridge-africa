@@ -4,6 +4,8 @@ import Header from './components/Header';
 import ChatDisplay from './components/ChatDisplay';
 import OnboardingModal from './OnboardingModal';
 import HistoryPanel from './components/HistoryPanel';
+import HelpModal from './components/HelpModal';
+import SettingsPanel from './components/SettingsPanel';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
@@ -32,7 +34,7 @@ export default function App() {
   const [isRecording, setIsRecording] = useState(false);
   const [language, setLanguage] = useState('English');
   const [showOnboarding, setShowOnboarding] = useState(true);
-
+  const [showHelp, setShowHelp] = useState(false);
   const [activeTab, setActiveTab] = useState('consultation');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -200,6 +202,9 @@ export default function App() {
         }} />
       )}
 
+      {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
+
+      {/* Mobile slide-out menu */}
       <div
         className={`fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm transition-opacity duration-300 ${
           isMobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
@@ -249,7 +254,10 @@ export default function App() {
           </div>
 
           <div className="flex flex-col gap-2 w-full">
-            <button className="flex items-center gap-3 w-full p-3.5 rounded-xl font-medium hover:bg-slate-800/50 hover:text-slate-200 transition">
+            <button
+              onClick={() => { setShowHelp(true); setIsMobileMenuOpen(false); }}
+              className="flex items-center gap-3 w-full p-3.5 rounded-xl font-medium hover:bg-slate-800/50 hover:text-slate-200 transition"
+            >
               <HelpCircle size={20} />
               <span>Help & FAQ</span>
             </button>
@@ -266,6 +274,7 @@ export default function App() {
         </aside>
       </div>
 
+      {/* Desktop permanent sidebar */}
       <aside className="hidden md:flex w-20 bg-slate-900 h-screen flex flex-col items-center justify-between py-6 text-slate-400 border-r border-slate-800 flex-shrink-0">
         <div className="flex flex-col items-center gap-6 w-full">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-teal-500 to-emerald-400 flex items-center justify-center text-white shadow-md shadow-teal-900/30 font-bold text-lg">
@@ -294,8 +303,12 @@ export default function App() {
         </div>
 
         <div className="flex flex-col items-center gap-4 w-full">
-          <button className="p-3 hover:bg-slate-800 hover:text-slate-200 rounded-xl transition">
+          <button
+            onClick={() => setShowHelp(true)}
+            className="p-3 hover:bg-slate-800 hover:text-slate-200 rounded-xl transition relative group"
+          >
             <HelpCircle size={22} />
+            <span className="absolute left-full ml-4 px-2 py-1 bg-slate-950 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition whitespace-nowrap z-50 shadow-xl pointer-events-none">Help & FAQ</span>
           </button>
           <button
             onClick={() => setActiveTab('settings')}
@@ -304,7 +317,8 @@ export default function App() {
             }`}
           >
             <Settings size={22} />
-            <span className={`absolute left-0 w-1 h-4 bg-teal-500 rounded-r-full left-0 top-[18px] transition-transform ${activeTab === 'settings' ? 'scale-100' : 'scale-0'}`}></span>
+            <span className="absolute left-full ml-4 px-2 py-1 bg-slate-950 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition whitespace-nowrap z-50 shadow-xl pointer-events-none">Settings</span>
+            <span className={`absolute left-0 w-1 h-4 bg-teal-500 rounded-r-full top-[18px] transition-transform ${activeTab === 'settings' ? 'scale-100' : 'scale-0'}`}></span>
           </button>
         </div>
       </aside>
@@ -375,11 +389,7 @@ export default function App() {
           {activeTab === 'history' && <HistoryPanel />}
 
           {activeTab === 'settings' && (
-            <div className="flex-grow bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col items-center justify-center text-slate-400">
-              <Settings size={48} className="text-slate-300 mb-3" />
-              <p className="text-base font-medium text-slate-700">System Preferences</p>
-              <p className="text-xs text-center mt-1">Audio metrics, regional accent parameters, and data logs controls.</p>
-            </div>
+            <SettingsPanel language={language} setLanguage={setLanguage} />
           )}
 
         </main>
