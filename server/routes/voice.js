@@ -54,7 +54,7 @@ router.post('/chat', upload.single('audio'), async (req, res) => {
     const transcribeResponse = await axios.post(
       `${pipelineBaseUrl}/transcribe?language=${selectedLanguage}`,
       transcribeForm,
-      { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 15000 }
+      { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 45000 }
     );
 
     const transcribedText = transcribeResponse.data.text || '';
@@ -73,7 +73,7 @@ router.post('/chat', upload.single('audio'), async (req, res) => {
       history: history
     }, {
       headers: { 'Content-Type': 'application/json' },
-      timeout: 15000
+      timeout: 45000
     });
 
     const answer = askResponse.data.answer || '';
@@ -113,7 +113,7 @@ router.post('/text-chat', async (req, res) => {
       history: history
     }, {
       headers: { 'Content-Type': 'application/json' },
-      timeout: 15000
+      timeout: 45000
     });
 
     const answer = response.data.answer || '';
@@ -140,7 +140,7 @@ router.post('/speak', async (req, res) => {
     const pythonResponse = await axios.post(`${pipelineBaseUrl}/speak`, req.body, {
       headers: { 'Content-Type': 'application/json' },
       responseType: 'text',
-      timeout: 15000 
+      timeout: 45000
     });
 
     try {
