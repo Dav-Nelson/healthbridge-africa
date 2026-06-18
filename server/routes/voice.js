@@ -168,4 +168,24 @@ router.post('/speak', async (req, res) => {
   }
 });
 
+// GET /api/voice/history/:sessionId — fetch full conversation history for a session
+router.get('/history/:sessionId', async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    if (!sessionId) {
+      return res.status(400).json({ error: 'sessionId is required' });
+    }
+
+    const result = await pool.query(
+      'SELECT role, content, language, created_at FROM conversations WHERE session_id = $1 ORDER BY created_at ASC',
+      [sessionId]
+    );
+
+    return res.json({ success: true, messages: result.rows });
+  } catch (error) {
+    console.error('History fetch failure:', error.message);
+    return res.status(500).json({ error: 'Failed to fetch history', message: error.message });
+  }
+});
+
 module.exports = router;

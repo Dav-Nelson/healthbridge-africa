@@ -3,6 +3,7 @@ import { Mic, Square, Send, MessageSquare, Settings, History, HelpCircle, Menu, 
 import Header from './components/Header';
 import ChatDisplay from './components/ChatDisplay';
 import OnboardingModal from './OnboardingModal';
+import HistoryPanel from './components/HistoryPanel';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
@@ -16,10 +17,10 @@ const LANGUAGE_ISO_MAP = {
 };
 
 const getOrCreateSessionId = () => {
-  let sessionId = sessionStorage.getItem('chat_session_id');
+  let sessionId = localStorage.getItem('chat_session_id');
   if (!sessionId) {
     sessionId = crypto.randomUUID();
-    sessionStorage.setItem('chat_session_id', sessionId);
+    localStorage.setItem('chat_session_id', sessionId);
   }
   return sessionId;
 };
@@ -371,13 +372,7 @@ export default function App() {
             </>
           )}
 
-          {activeTab === 'history' && (
-            <div className="flex-grow bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col items-center justify-center text-slate-400">
-              <History size={48} className="text-slate-300 mb-3" />
-              <p className="text-base font-medium text-slate-700">No Consultation History Yet</p>
-              <p className="text-xs text-center mt-1">Your localized medical discussions will appear recorded here securely.</p>
-            </div>
-          )}
+          {activeTab === 'history' && <HistoryPanel />}
 
           {activeTab === 'settings' && (
             <div className="flex-grow bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col items-center justify-center text-slate-400">
