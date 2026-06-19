@@ -1,27 +1,45 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Volume2, Square, Loader2 } from 'lucide-react';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const SPEED_OPTIONS = [0.75, 1, 1.25, 1.5];
 
 export default function ResponsePlayer({ text, language }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [audioElement, setAudioElement] = useState(null);
+  const [speed, setSpeed] = useState(() => {
+    const saved = parseFloat(localStorage.getItem('hb_playback_speed'));
+    return SPEED_OPTIONS.includes(saved) ? saved : 1;
+  });
+  const audioRef = useRef(null);
+  const hasAutoPlayedRef = useRef(false);
 
-  const handlePlayAudio = async () => {
-    if (isPlaying && audioElement) {
-      audioElement.pause();
+  const handleSpeedChange = (e) => {
+    const newSpeed = parseFloat(e.target.value);
+    setSpeed(newSpeed);
+    localStorage.setItem('hb_playback_speed', newSpeed);
+    if (audioRef.current) {
+      audioRef.current.playbackRate = newSpeed;
+    }
+  };
+
+  const fetchAndPlayAudio = useCallback(async () => {
+    if (isPlaying && audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
       setIsPlaying(false);
       return;
     }
 
     setIsLoading(true);
     try {
-      // FIX: Route through API_BASE_URL to prevent CORS/direct stream blocks
       const response = await fetch(`${API_BASE_URL}/api/voice/speak`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, language: language ? language.toLowerCase() : 'en' }),
+        body: JSON.stringify({
+          text,
+          language: language ? language.toLowerCase() : 'en'
+        }),
       });
 
       if (!response.ok) throw new Error('Failed to fetch audio from server');
@@ -40,54 +58,83 @@ export default function ResponsePlayer({ text, language }) {
         audioUrl = URL.createObjectURL(audioBlob);
       }
 
-      const audio = new Audio();
-      audio.src = audioUrl;
-      
+      const audio = new Audio(audioUrl);
+      audio.playbackRate = speed;
+      audioRef.current = audio;
+
       audio.onended = () => {
         setIsPlaying(false);
+        audioRef.current = null;
         if (!contentType.includes('application/json')) {
           URL.revokeObjectURL(audioUrl);
         }
       };
 
-      audio.onerror = (e) => {
-        console.error("Browser media playback engine failed to decode audio source:", e);
+      audio.onerror = () => {
         setIsPlaying(false);
-        alert("Audio rendering issue. Please check device output codec.");
+        audioRef.current = null;
       };
 
-      setAudioElement(audio);
       setIsPlaying(true);
-      
       const playPromise = audio.play();
       if (playPromise !== undefined) {
-        playPromise.catch(err => {
-          console.error("Playback blocked by browser autoplay rules:", err);
+        playPromise.catch(() => {
           setIsPlaying(false);
+          audioRef.current = null;
         });
       }
-
     } catch (error) {
-      console.error("Audio Processing Pipeline Exception:", error.message);
-      alert("Could not play the audio response.");
+      console.error("Audio Processing Error:", error.message);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [text, language, speed, isPlaying]);
+
+  // Auto-play once per message — ref guards against re-firing on re-renders
+  useEffect(() => {
+    if (localStorage.getItem('hb_autoplay') === 'true' && text && !hasAutoPlayedRef.current) {
+      hasAutoPlayedRef.current = true;
+      const timer = setTimeout(() => {
+        fetchAndPlayAudio();
+      }, 600);
+      return () => clearTimeout(timer);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
-    <button
-      onClick={handlePlayAudio}
-      disabled={isLoading}
-      className={`mt-2 flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-        isPlaying 
-          ? 'bg-teal-100 text-teal-800 border border-teal-200' 
-          : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
-      }`}
-    >
-      {isLoading ? <Loader2 size={16} className="animate-spin" /> : 
-       isPlaying ? <Square size={16} /> : <Volume2 size={16} />}
-      {isPlaying ? 'Stop' : 'Listen'}
-    </button>
+    <div className="flex items-center gap-2">
+      <button
+        onClick={fetchAndPlayAudio}
+        disabled={isLoading}
+        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+          isPlaying
+            ? 'bg-teal-100 text-teal-800 border border-teal-200'
+            : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+        }`}
+      >
+        {isLoading ? (
+          <Loader2 size={16} className="animate-spin" />
+        ) : isPlaying ? (
+          <Square size={16} />
+        ) : (
+          <Volume2 size={16} />
+        )}
+        {isLoading ? 'Loading...' : isPlaying ? 'Stop' : 'Listen'}
+      </button>
+
+      <select
+        value={speed}
+        onChange={handleSpeedChange}
+        className="text-xs px-2 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 cursor-pointer hover:bg-slate-50 focus:outline-none"
+        title="Playback speed"
+      >
+        {SPEED_OPTIONS.map((s) => (
+          <option key={s} value={s}>
+            {s === 1 ? '1x' : `${s}x`}
+          </option>
+        ))}
+      </select>
+    </div>
   );
 }
