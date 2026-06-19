@@ -4,12 +4,14 @@ const router = express.Router();
 const multer = require('multer');
 const pool = require('../db/index');
 
-const upload = multer({ 
+const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 }
 });
 
 const getPipelineUrl = () => process.env.AI_PIPELINE_URL || 'https://healthbridge-africa-ai-pipeline.onrender.com';
+
+const MAX_MESSAGE_LENGTH = 2000;
 
 // Shared helper: save a message and fetch recent history for a session
 async function saveMessage(sessionId, role, content, language) {
@@ -22,16 +24,15 @@ async function saveMessage(sessionId, role, content, language) {
 async function getHistory(sessionId, limit = 6) {
   const result = await pool.query(
     `SELECT role, content FROM (
-       SELECT role, content, created_at FROM conversations 
+       SELECT role, content, created_at FROM conversations
        WHERE session_id = $1 ORDER BY created_at DESC LIMIT $2
      ) AS recent ORDER BY created_at ASC`,
     [sessionId, limit]
   );
-  // ask_rag expects { sender, text } shaped history — map role -> sender, content -> text
   return result.rows.map(r => ({ sender: r.role, text: r.content }));
 }
 
-// POST /api/voice/chat — full voice flow: audio -> transcribe -> RAG answer (text only)
+// POST /api/voice/chat — full voice flow: audio -> transcribe -> RAG answer
 router.post('/chat', upload.single('audio'), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'Audio file is required' });
@@ -46,7 +47,6 @@ router.post('/chat', upload.single('audio'), async (req, res) => {
 
     const pipelineBaseUrl = getPipelineUrl();
 
-    // Step 1: transcribe audio to text via FastAPI /transcribe
     const transcribeForm = new FormData();
     const audioBlob = new Blob([req.file.buffer], { type: req.file.mimetype });
     transcribeForm.append('file', audioBlob, req.file.originalname || 'audio.wav');
@@ -62,11 +62,13 @@ router.post('/chat', upload.single('audio'), async (req, res) => {
       return res.status(422).json({ error: 'Could not understand the audio. Please try again.' });
     }
 
-    // Step 2: save user message, fetch history
+    if (transcribedText.length > MAX_MESSAGE_LENGTH) {
+      return res.status(400).json({ error: 'Transcribed audio is too long. Please keep messages concise.' });
+    }
+
     await saveMessage(sessionId, 'user', transcribedText, selectedLanguage);
     const history = await getHistory(sessionId);
 
-    // Step 3: ask the grounded RAG question via FastAPI /ask
     const askResponse = await axios.post(`${pipelineBaseUrl}/ask`, {
       question: transcribedText,
       language: selectedLanguage,
@@ -77,8 +79,6 @@ router.post('/chat', upload.single('audio'), async (req, res) => {
     });
 
     const answer = askResponse.data.answer || '';
-
-    // Step 4: save bot response
     await saveMessage(sessionId, 'bot', answer, selectedLanguage);
 
     return res.json({
@@ -101,6 +101,10 @@ router.post('/text-chat', async (req, res) => {
 
     if (!message || !sessionId) {
       return res.status(400).json({ error: 'Message and sessionId are required' });
+    }
+
+    if (message.length > MAX_MESSAGE_LENGTH) {
+      return res.status(400).json({ error: 'Message is too long. Please keep messages under 2000 characters.' });
     }
 
     await saveMessage(sessionId, 'user', message, language);
@@ -132,11 +136,16 @@ router.post('/text-chat', async (req, res) => {
   }
 });
 
-// POST /api/voice/speak — text -> audio, called separately by frontend after displaying text
+// POST /api/voice/speak — text -> audio
 router.post('/speak', async (req, res) => {
   try {
+    const { text } = req.body;
+    if (!text || text.length > MAX_MESSAGE_LENGTH) {
+      return res.status(400).json({ error: 'Invalid or oversized text for speech synthesis.' });
+    }
+
     const pipelineBaseUrl = getPipelineUrl();
-    
+
     const pythonResponse = await axios.post(`${pipelineBaseUrl}/speak`, req.body, {
       headers: { 'Content-Type': 'application/json' },
       responseType: 'text',
@@ -152,23 +161,22 @@ router.post('/speak', async (req, res) => {
         return res.send(audioBuffer);
       }
     } catch (e) {
-      // Data was not JSON string, fallback to processing raw response stream
+      // Not JSON — fall through to raw response
     }
 
     const contentType = pythonResponse.headers['content-type'] || 'audio/mpeg';
-    res.setHeader('Content-Type', contentType);
     return res.send(Buffer.from(pythonResponse.data, 'binary'));
 
   } catch (error) {
-    console.error('Voice proxy /speak structural failure:', error.response?.data || error.message);
-    return res.status(500).json({ 
-      error: 'Proxy text-to-speech generation failure', 
-      message: error.message 
+    console.error('Voice proxy /speak failure:', error.response?.data || error.message);
+    return res.status(500).json({
+      error: 'Proxy text-to-speech generation failure',
+      message: error.message
     });
   }
 });
 
-// GET /api/voice/history/:sessionId — fetch full conversation history for a session
+// GET /api/voice/history/:sessionId
 router.get('/history/:sessionId', async (req, res) => {
   try {
     const { sessionId } = req.params;
