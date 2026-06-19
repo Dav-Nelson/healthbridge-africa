@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Volume2, Square, Loader2 } from 'lucide-react';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
@@ -24,7 +24,7 @@ export default function ResponsePlayer({ text, language }) {
     }
   };
 
-  const fetchAndPlayAudio = async () => {
+  const fetchAndPlayAudio = useCallback(async () => {
     if (isPlaying && audioRef.current) {
       audioRef.current.pause();
       audioRef.current = null;
@@ -89,7 +89,7 @@ export default function ResponsePlayer({ text, language }) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [text, language, speed, isPlaying]);
 
   useEffect(() => {
     if (shouldAutoPlay() && text) {
@@ -98,7 +98,7 @@ export default function ResponsePlayer({ text, language }) {
       }, 600);
       return () => clearTimeout(timer);
     }
-  }, []);
+  }, [fetchAndPlayAudio, text]);
 
   return (
     <div className="flex items-center gap-2">
