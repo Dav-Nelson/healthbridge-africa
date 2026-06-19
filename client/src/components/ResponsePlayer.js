@@ -2,14 +2,27 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Volume2, Square, Loader2 } from 'lucide-react';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const SPEED_OPTIONS = [0.75, 1, 1.25, 1.5];
 
 export default function ResponsePlayer({ text, language }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [speed, setSpeed] = useState(() => {
+    const saved = parseFloat(localStorage.getItem('hb_playback_speed'));
+    return SPEED_OPTIONS.includes(saved) ? saved : 1;
+  });
   const audioRef = useRef(null);
 
-  // Read auto-play preference from localStorage
   const shouldAutoPlay = () => localStorage.getItem('hb_autoplay') === 'true';
+
+  const handleSpeedChange = (e) => {
+    const newSpeed = parseFloat(e.target.value);
+    setSpeed(newSpeed);
+    localStorage.setItem('hb_playback_speed', newSpeed);
+    if (audioRef.current) {
+      audioRef.current.playbackRate = newSpeed;
+    }
+  };
 
   const fetchAndPlayAudio = async () => {
     if (isPlaying && audioRef.current) {
@@ -47,6 +60,7 @@ export default function ResponsePlayer({ text, language }) {
       }
 
       const audio = new Audio(audioUrl);
+      audio.playbackRate = speed;
       audioRef.current = audio;
 
       audio.onended = () => {
@@ -70,7 +84,6 @@ export default function ResponsePlayer({ text, language }) {
           audioRef.current = null;
         });
       }
-
     } catch (error) {
       console.error("Audio Processing Error:", error.message);
     } finally {
@@ -78,10 +91,8 @@ export default function ResponsePlayer({ text, language }) {
     }
   };
 
-  // Auto-play when the component mounts if preference is enabled
   useEffect(() => {
     if (shouldAutoPlay() && text) {
-      // Small delay to let the UI render first before firing the audio request
       const timer = setTimeout(() => {
         fetchAndPlayAudio();
       }, 600);
@@ -90,23 +101,38 @@ export default function ResponsePlayer({ text, language }) {
   }, []);
 
   return (
-    <button
-      onClick={fetchAndPlayAudio}
-      disabled={isLoading}
-      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-        isPlaying
-          ? 'bg-teal-100 text-teal-800 border border-teal-200'
-          : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
-      }`}
-    >
-      {isLoading ? (
-        <Loader2 size={16} className="animate-spin" />
-      ) : isPlaying ? (
-        <Square size={16} />
-      ) : (
-        <Volume2 size={16} />
-      )}
-      {isLoading ? 'Loading...' : isPlaying ? 'Stop' : 'Listen'}
-    </button>
+    <div className="flex items-center gap-2">
+      <button
+        onClick={fetchAndPlayAudio}
+        disabled={isLoading}
+        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+          isPlaying
+            ? 'bg-teal-100 text-teal-800 border border-teal-200'
+            : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+        }`}
+      >
+        {isLoading ? (
+          <Loader2 size={16} className="animate-spin" />
+        ) : isPlaying ? (
+          <Square size={16} />
+        ) : (
+          <Volume2 size={16} />
+        )}
+        {isLoading ? 'Loading...' : isPlaying ? 'Stop' : 'Listen'}
+      </button>
+
+      <select
+        value={speed}
+        onChange={handleSpeedChange}
+        className="text-xs px-2 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 cursor-pointer hover:bg-slate-50 focus:outline-none"
+        title="Playback speed"
+      >
+        {SPEED_OPTIONS.map((s) => (
+          <option key={s} value={s}>
+            {s === 1 ? '1x' : `${s}x`}
+          </option>
+        ))}
+      </select>
+    </div>
   );
 }

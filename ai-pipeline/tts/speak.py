@@ -22,7 +22,7 @@ def text_to_speech(text: str, language: str = "en") -> str:
         "en": "com.ng",
         "pcm": "com.ng",
         "tw": "com.ng",
-        "om": "com.ng",
+        "om": "co.za",
         "sw": "com",
         "am": "com"
     }
