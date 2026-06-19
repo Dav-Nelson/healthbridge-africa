@@ -26,7 +26,7 @@ export default function SettingsPanel({ language, setLanguage }) {
 
       <div className="p-5 border-b border-slate-100">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
             <Settings size={18} className="text-slate-600" />
           </div>
           <div>
@@ -59,22 +59,23 @@ export default function SettingsPanel({ language, setLanguage }) {
         </div>
 
         {/* Audio auto-play */}
-        <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-200">
-          <div className="flex items-center gap-3">
-            <Volume2 size={18} className="text-slate-500" />
-            <div>
+        <div className="flex items-center justify-between gap-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
+          <div className="flex items-start gap-3 min-w-0">
+            <Volume2 size={18} className="text-slate-500 flex-shrink-0 mt-0.5" />
+            <div className="min-w-0">
               <p className="text-sm font-semibold text-slate-700">Auto-play Audio</p>
-              <p className="text-xs text-slate-400">Automatically play voice responses after each reply</p>
+              <p className="text-xs text-slate-400 leading-snug">Automatically play voice responses after each reply</p>
             </div>
           </div>
           <button
             onClick={handleAutoPlayToggle}
+            aria-label="Toggle auto-play audio"
             className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${
               autoPlay ? 'bg-teal-500' : 'bg-slate-300'
             }`}
           >
-            <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${
-              autoPlay ? 'translate-x-6' : 'translate-x-1'
+            <span className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${
+              autoPlay ? 'translate-x-5' : 'translate-x-0'
             }`} />
           </button>
         </div>
