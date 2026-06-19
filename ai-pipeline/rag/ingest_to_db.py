@@ -33,7 +33,6 @@ def get_embedding(text: str, task_type: str = "RETRIEVAL_DOCUMENT") -> list:
         )
     )
     vector = result.embeddings[0].values
-
     norm = sum(v * v for v in vector) ** 0.5
     normalized = [v / norm for v in vector] if norm > 0 else vector
     return normalized
@@ -43,7 +42,6 @@ def ingest_file_to_db(filepath, source_name, cur):
     print(f"Ingesting {source_name} into DB...")
     with open(filepath, "r", encoding="utf-8") as f:
         text = f.read()
-
     chunks = chunk_text(text)
     for i, chunk in enumerate(chunks):
         embedding = get_embedding(chunk, task_type="RETRIEVAL_DOCUMENT")
@@ -52,27 +50,35 @@ def ingest_file_to_db(filepath, source_name, cur):
             (source_name, i, chunk, embedding)
         )
         time.sleep(0.5)
-    print(f"✅ Stored {len(chunks)} chunks.")
+    print(f"✅ Stored {len(chunks)} chunks from {source_name}.")
 
 
 def main():
     conn = psycopg2.connect(os.getenv("DATABASE_URL"))
     cur = conn.cursor()
 
+    # Clear all existing chunks before re-ingesting
+    print("🗑️  Clearing existing knowledge base chunks...")
+    cur.execute("DELETE FROM knowledge_base")
+    conn.commit()
+    print("✅ Old chunks cleared.")
+
     docs = [
-        ("ai-pipeline/knowledge-base/ethiopia-health-facts.md", "Ethiopia Health Facts"),
-        ("ai-pipeline/knowledge-base/ghana-health-facts.md", "Ghana Health Facts"),
-        ("ai-pipeline/knowledge-base/kenya-health-facts.md", "Kenya Health Facts"),
-        ("ai-pipeline/knowledge-base/nigeria-health-facts.md", "Nigeria Health Facts"),
-        ("ai-pipeline/knowledge-base/WHO-guidelines.md", "WHO Guidelines"),
+        ("knowledge-base/WHO-guidelines.md", "WHO Guidelines"),
+        ("knowledge-base/nigeria-health-facts.md", "Nigeria Health Facts"),
+        ("knowledge-base/ghana-health-facts.md", "Ghana Health Facts"),
+        ("knowledge-base/kenya-health-facts.md", "Kenya Health Facts"),
+        ("knowledge-base/ethiopia-health-facts.md", "Ethiopia Health Facts"),
     ]
 
     for path, name in docs:
         ingest_file_to_db(path, name, cur)
         conn.commit()
+        print(f"💾 Committed {name}.")
 
     cur.close()
     conn.close()
+    print("🎉 All documents ingested successfully.")
 
 
 if __name__ == "__main__":
