@@ -27,51 +27,56 @@ The assistant remembers context across a conversation, asks clarifying
 questions rather than giving flat one-shot answers, and responds in text
 first — with an option to play the response back as audio.
 
+When the AI explains a condition, a relevant clinical image is shown inline —
+sourced from Wikimedia Commons and selected to reflect how conditions present
+on darker skin tones.
+
 **It does not replace doctors. It helps people know when to see one.**
 
 ---
 
 ## How it works
 User speaks or types (English · Pidgin · Swahili · Oromo · Twi · Amharic)
-
 ↓
-
 Express.js gateway (Node.js) — routes by payload type
-
 ↓
+┌─────────────────────────────────────────┐
 
-┌──────────────────────────────────────┐
-
-│   FastAPI pipeline (Render)            │
+│   FastAPI pipeline (Render)             │
 
 │                                         │
 
-│ 1. Whisper STT (Groq)                  │ → voice to text
+│ 1. Whisper STT (Groq)                   │ → voice to text
 
-│ 2. Cross-lingual alignment             │ → Llama-3.1-8B, standardizes
+│ 2. Cross-lingual alignment              │ → Llama-3.1-8B, standardizes
 
-│                                          │   query to English for search
+│                                         │   query to English for search
 
-│ 3. Semantic retrieval                  │ → pgvector on Neon, top-k=3
+│ 3. Semantic retrieval                   │ → pgvector on Neon, top-k=5
 
-│                                          │   grounded health chunks
+│                                         │   grounded health chunks
 
-│ 4. Conversational RAG inference        │ → Llama-3.1-8B-Instant, answers
+│ 4. Conversational RAG inference         │ → Llama-3.1-8B-Instant, answers
 
-│                                          │   in the user's language, with
+│                                         │   in the user's language, with
 
-│                                          │   conversation history
+│                                         │   conversation history
 
-│ 5. Audio synthesis (on demand)         │ → gTTS, in-memory, Base64
+│ 5. Audio synthesis (on demand)          │ → gTTS, in-memory, Base64
 
-└──────────────────────────────────────┘
-
+└─────────────────────────────────────────┘
 ↓
+Text response shown immediately
 
-Text response shown immediately → user can tap "Listen" for voice playback
+→ Inline disease image shown where relevant (Wikimedia Commons)
+
+→ User can tap "Listen" for voice playback with adjustable speed (0.75x–1.5x)
+
 Conversation history is stored in Neon Postgres per session, so the
 assistant can refer back to earlier parts of the conversation and ask
 follow-up questions instead of treating every message as a cold start.
+Users can delete their session data from both the device and the server
+via the Settings panel.
 
 ---
 
@@ -81,12 +86,13 @@ follow-up questions instead of treating every message as a cold start.
 |-------|-----------|-----|
 | Frontend | React (Create React App) + Tailwind CSS | Fast iteration, component-based UI |
 | Gateway | Node.js + Express | Public-facing proxy, isolates the AI pipeline from direct internet traffic |
+| Security | helmet + express-rate-limit | HTTP security headers, CORS lockdown, rate limiting |
 | AI Pipeline | FastAPI (Python) | Stateless, containerized RAG orchestration |
 | Database | PostgreSQL + pgvector (Neon) | Conversation history + vector embeddings in one place, free tier |
 | STT | Whisper-large-v3 via Groq API | Fast, multilingual, generous free tier |
 | Translation | Llama-3.1-8B (temp=0.0) via Groq | Deterministic cross-lingual alignment before retrieval |
 | LLM (inference) | Llama-3.1-8B-Instant via Groq | Fast, conversational, grounded responses; high free-tier limits |
-| Embeddings | sentence-transformers (all-MiniLM-L6-v2) | Local, free, no API cost for retrieval |
+| Embeddings | Gemini Embedding API (gemini-embedding-001, 768-dim) | High-quality semantic embeddings, free tier |
 | TTS | gTTS | Free, in-memory synthesis, regional accent routing for English |
 | Analytics | PostHog | Session tracking, location and language insights |
 | Hosting (frontend) | Vercel | Free tier, instant deploys |
@@ -114,18 +120,54 @@ known limitation, not a configuration gap.
 
 ---
 
-## Knowledge base sources
+## Knowledge base
 
-- World Health Organization (WHO) guidelines
-- Nigeria health facts
-- Ghana health facts
-- Ethiopia health facts
-- Kenya health facts
+The knowledge base covers 15+ conditions per country, structured consistently
+across all five documents and grounded in official national health guidelines.
 
-Knowledge base documents are chunked, embedded locally with
-sentence-transformers, and stored in Neon Postgres with pgvector for
-semantic retrieval. See `ai-pipeline/knowledge-base/sources.md` for full
-source attribution.
+**Conditions covered:** Malaria, Typhoid Fever, Cholera, Tuberculosis,
+HIV/AIDS, Lassa Fever, Meningitis, Dengue Fever, Measles, Chickenpox,
+Mpox/Monkeypox, Scabies, Ringworm, Eczema, Conjunctivitis, Jaundice,
+Malnutrition, Hypertension, Diabetes, Sickle Cell Disease,
+Schistosomiasis/Bilharzia, Maternal & Neonatal Health.
+
+**Sources:**
+- World Health Organization (WHO) global guidelines
+- Nigeria Centre for Disease Control (NCDC) / Federal Ministry of Health
+- Ghana Health Service (GHS) clinical guidelines
+- Kenya Ministry of Health (MoH) national protocols
+- Federal Ministry of Health (FMoH) Ethiopia / Ethiopian Public Health Institute
+
+Knowledge base documents are chunked, embedded via Gemini Embedding API,
+and stored in Neon Postgres with pgvector for semantic retrieval.
+See `ai-pipeline/knowledge-base/sources.md` for full source attribution.
+
+---
+
+## Security
+
+| Control | Implementation |
+|---------|---------------|
+| HTTP security headers | helmet.js |
+| CORS | Locked to production Vercel domain only |
+| Rate limiting | 60 req/15 min general; 20 req/15 min on AI endpoints |
+| Input validation | 2000 character max on all text inputs |
+| File upload limit | 10 MB hard limit via multer |
+| SQL injection | Parameterized queries throughout (psycopg2 + node-postgres) |
+| Secrets management | All keys in .env files, excluded via .gitignore |
+| HTTPS | Enforced at platform level by Vercel and Render |
+
+---
+
+## Data & privacy
+
+Conversations are stored in Neon PostgreSQL, linked only to an anonymous
+device session ID — no name, email, or personal identity is collected.
+
+Users can delete their full conversation history from both the device and
+the server at any time via Settings → Clear my session.
+
+Automatic data expiry after 90 days is planned but not yet implemented.
 
 ---
 
@@ -158,7 +200,7 @@ cd ai-pipeline && pip install -r requirements.txt && cd ..
 
 # Set up environment variables (repeat for client/ and ai-pipeline/ as needed)
 cp .env.example .env
-# Fill in: GROQ_API_KEY, DATABASE_URL (Neon), PostHog key
+# Fill in: GROQ_API_KEY, DATABASE_URL (Neon), GEMINI_API_KEY, PostHog key
 
 # Run the backend
 npm run dev
@@ -169,6 +211,21 @@ cd client && npm start
 # Run the AI pipeline (separate terminal, from ai-pipeline/)
 uvicorn api.main:app --reload --port 8000
 ```
+
+---
+
+## Ingesting the knowledge base
+
+Run this once after cloning, or whenever the knowledge base documents change:
+
+```bash
+cd ai-pipeline
+python -m rag.ingest_to_db
+```
+
+This clears existing chunks, re-embeds all five documents via Gemini, and
+stores the vectors in Neon. Requires `DATABASE_URL` and `GEMINI_API_KEY`
+in `ai-pipeline/.env`.
 
 ---
 
@@ -188,7 +245,6 @@ tests, and the frontend has its own React-aware test runner.
 ---
 
 ## Project structure
-
 healthbridge-africa/
 
 ├── client/                  # React frontend
@@ -201,25 +257,25 @@ healthbridge-africa/
 
 ├── server/                  # Node.js + Express gateway
 
-│   ├── routes/               # voice.js (chat, text-chat, speak), health.js
+│   ├── routes/              # voice.js (chat, text-chat, speak, history), health.js
 
-│   └── db/                   # Neon Postgres connection
+│   └── db/                  # Neon Postgres connection
 
-├── ai-pipeline/              # FastAPI RAG + voice pipeline
+├── ai-pipeline/             # FastAPI RAG + voice pipeline
 
-│   ├── api/                  # main.py — /ask, /transcribe, /speak
+│   ├── api/                 # main.py — /ask, /transcribe, /speak
 
-│   ├── rag/                  # query.py, ingest_to_db.py
+│   ├── rag/                 # query.py, ingest_to_db.py
 
-│   ├── tts/                  # speak.py
+│   ├── tts/                 # speak.py
 
-│   └── knowledge-base/       # Curated health documents (WHO, country facts)
+│   └── knowledge-base/      # Curated health documents (WHO + 4 country files)
 
-├── tests/                    # Backend test suite
+├── tests/                   # Backend test suite
 
 └── .github/
 
-└── workflows/             # CI — backend + frontend tests on every push
+└── workflows/           # CI — backend + frontend tests on every push
 
 ---
 
