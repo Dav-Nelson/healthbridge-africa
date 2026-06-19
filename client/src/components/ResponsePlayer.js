@@ -12,8 +12,7 @@ export default function ResponsePlayer({ text, language }) {
     return SPEED_OPTIONS.includes(saved) ? saved : 1;
   });
   const audioRef = useRef(null);
-
-  const shouldAutoPlay = () => localStorage.getItem('hb_autoplay') === 'true';
+  const hasAutoPlayedRef = useRef(false);
 
   const handleSpeedChange = (e) => {
     const newSpeed = parseFloat(e.target.value);
@@ -91,14 +90,17 @@ export default function ResponsePlayer({ text, language }) {
     }
   }, [text, language, speed, isPlaying]);
 
+  // Auto-play once per message — ref guards against re-firing on re-renders
   useEffect(() => {
-    if (shouldAutoPlay() && text) {
+    if (localStorage.getItem('hb_autoplay') === 'true' && text && !hasAutoPlayedRef.current) {
+      hasAutoPlayedRef.current = true;
       const timer = setTimeout(() => {
         fetchAndPlayAudio();
       }, 600);
       return () => clearTimeout(timer);
     }
-  }, [fetchAndPlayAudio, text]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="flex items-center gap-2">
