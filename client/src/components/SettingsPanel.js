@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Settings, Volume2, Globe, Trash2, ShieldCheck } from 'lucide-react';
 
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 const SUPPORTED_LANGUAGES = ['English', 'Pidgin', 'Oromo', 'Twi', 'Swahili', 'Amharic'];
 
 export default function SettingsPanel({ language, setLanguage }) {
@@ -8,6 +9,7 @@ export default function SettingsPanel({ language, setLanguage }) {
     return localStorage.getItem('hb_autoplay') === 'true';
   });
   const [cleared, setCleared] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
 
   const handleAutoPlayToggle = () => {
     const next = !autoPlay;
@@ -15,8 +17,23 @@ export default function SettingsPanel({ language, setLanguage }) {
     localStorage.setItem('hb_autoplay', String(next));
   };
 
-  const handleClearHistory = () => {
+  const handleClearHistory = async () => {
+    const sessionId = localStorage.getItem('chat_session_id');
+    setIsClearing(true);
+
+    if (sessionId) {
+      try {
+        await fetch(`${API_BASE_URL}/api/voice/history/${sessionId}`, {
+          method: 'DELETE'
+        });
+      } catch (err) {
+        console.error('Failed to delete server history:', err);
+        // Still clear localStorage even if server delete fails
+      }
+    }
+
     localStorage.removeItem('chat_session_id');
+    setIsClearing(false);
     setCleared(true);
     setTimeout(() => setCleared(false), 3000);
   };
@@ -87,13 +104,18 @@ export default function SettingsPanel({ language, setLanguage }) {
             <span className="text-sm font-semibold text-slate-700">Clear Consultation History</span>
           </div>
           <p className="text-xs text-slate-400 mb-2">
-            Removes your session link from this device. Your next conversation will start fresh. This does not delete data from our servers.
+            Permanently removes your session and all conversation data from both this device and our servers. Your next conversation will start completely fresh.
           </p>
           <button
             onClick={handleClearHistory}
-            className="w-full p-2.5 rounded-xl border border-red-200 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 transition-colors"
+            disabled={isClearing}
+            className="w-full p-2.5 rounded-xl border border-red-200 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {cleared ? '✓ Session cleared — refresh to start fresh' : 'Clear my session'}
+            {isClearing
+              ? 'Clearing...'
+              : cleared
+              ? '✓ Session cleared — refresh to start fresh'
+              : 'Clear my session'}
           </button>
         </div>
 
@@ -101,7 +123,7 @@ export default function SettingsPanel({ language, setLanguage }) {
         <div className="flex items-start gap-3 p-4 bg-teal-50 rounded-xl border border-teal-100">
           <ShieldCheck size={18} className="text-teal-600 flex-shrink-0 mt-0.5" />
           <p className="text-xs text-slate-600 leading-relaxed">
-            HealthBridge Africa does not collect your name, email, or any personal identity. Your conversations are stored securely and linked only to your device session.
+            HealthBridge Africa does not collect your name, email, or any personal identity. Your conversations are stored securely and linked only to your device session. Clearing your session permanently deletes all conversation data from our servers.
           </p>
         </div>
 

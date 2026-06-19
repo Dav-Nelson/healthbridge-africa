@@ -13,7 +13,6 @@ const getPipelineUrl = () => process.env.AI_PIPELINE_URL || 'https://healthbridg
 
 const MAX_MESSAGE_LENGTH = 2000;
 
-// Shared helper: save a message and fetch recent history for a session
 async function saveMessage(sessionId, role, content, language) {
   await pool.query(
     'INSERT INTO conversations (session_id, role, content, language) VALUES ($1, $2, $3, $4)',
@@ -164,7 +163,6 @@ router.post('/speak', async (req, res) => {
       // Not JSON — fall through to raw response
     }
 
-    const contentType = pythonResponse.headers['content-type'] || 'audio/mpeg';
     return res.send(Buffer.from(pythonResponse.data, 'binary'));
 
   } catch (error) {
@@ -176,7 +174,7 @@ router.post('/speak', async (req, res) => {
   }
 });
 
-// GET /api/voice/history/:sessionId
+// GET /api/voice/history/:sessionId — fetch full conversation history
 router.get('/history/:sessionId', async (req, res) => {
   try {
     const { sessionId } = req.params;
@@ -193,6 +191,26 @@ router.get('/history/:sessionId', async (req, res) => {
   } catch (error) {
     console.error('History fetch failure:', error.message);
     return res.status(500).json({ error: 'Failed to fetch history', message: error.message });
+  }
+});
+
+// DELETE /api/voice/history/:sessionId — delete all messages for a session
+router.delete('/history/:sessionId', async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    if (!sessionId) {
+      return res.status(400).json({ error: 'sessionId is required' });
+    }
+
+    const result = await pool.query(
+      'DELETE FROM conversations WHERE session_id = $1',
+      [sessionId]
+    );
+
+    return res.json({ success: true, deleted: result.rowCount });
+  } catch (error) {
+    console.error('History delete failure:', error.message);
+    return res.status(500).json({ error: 'Failed to delete history', message: error.message });
   }
 });
 
