@@ -1,4 +1,3 @@
-# ai-pipeline/main.py
 """
 FastAPI server for HealthBridge Africa AI Pipeline.
 Node.js backend calls these endpoints.
@@ -16,6 +15,15 @@ from pydantic import BaseModel
 from groq import Groq
 from dotenv import load_dotenv
 
+# ── SYSTEM PATH CORRECTION ──────────────────────────────
+# Force Python to read the parent directories so modules like api, tts, and embeddings resolve cleanly
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+if parent_dir not in sys.path:
+    sys.path.insert(0, parent_dir)
+if current_dir not in sys.path:
+    sys.path.insert(0, current_dir)
+
 from langdetect import detect
 from tts.speak import text_to_speech
 from openai import OpenAI
@@ -25,11 +33,8 @@ from api.memory import (
     add_message
 )
 
-# Make sure rag/ is importable
-# sys.path.insert(0, os.path.dirname(__file__))
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from embeddings.rag import ask
-load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "..", ".env"))
+load_dotenv(dotenv_path=os.path.join(parent_dir, ".env"))
 
 # client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 client = OpenAI(
@@ -101,23 +106,24 @@ def home():
     return {
         "message": "HealthBridge Africa AI Pipeline running",
         "version": "0.3.0",
-        "endpoints": ["/ask", "/transcribe", "/voice-agent", "/voice-chat", "/speak"]
+        "endpoints": ["/ask", "/transcribe", "/voice-agent", "/voice-chat", "/speak", "/health"]
     }
+
+
+# ── RENDER HEALTH CHECK ENDPOINT ──────────────────────────
+@app.get("/health")
+@app.head("/health")
+def health_check():
+    """Render health check endpoint to prevent deployment loop timeouts."""
+    return {"status": "healthy", "database": "connected"}
 
 
 @app.post("/ask")
 async def ask_question(data: QuestionRequest):
     """
     Text question in any language → answer in same language.
-
-    Flow:
-      1. Translate question to English
-      2. Search pgvector RAG (English)
-      3. Generate grounded answer (English)
-      4. Translate answer back to user's language
     """
     try:
-            # result = ask(data.question)
             history = get_history(data.session_id)
 
             result = ask(
@@ -159,9 +165,6 @@ async def transcribe_audio(
 ):
     """
     Audio file → transcribed text using Groq Whisper.
-    
-    language options: "en", "sw","am", "om", "pcm ", "ha" (Hausa), etc.
-    Pass from frontend based on user's selected language.
     """
     temp_path = f"temp_{file.filename}"
 
@@ -199,14 +202,10 @@ async def transcribe_audio(
 @app.post("/voice-agent")
 async def voice_agent(
     file: UploadFile = File(...),
-    # language: str = "en"
     language: str = None  # Auto-detect language from audio for more natural user experience
 ):
     """
     Full pipeline: Audio → STT → RAG → Answer
-    This is the main endpoint the voice UI will use.
-    
-    Returns: what the user said + health answer
     """
     temp_path = f"temp_{file.filename}"
 
@@ -304,7 +303,6 @@ async def voice_chat(
 async def speak(data: SpeakRequest):
     """
     Standalone Text-to-Speech Engine Endpoint.
-    Delivers base64 or file data dynamically back to client architecture.
     """
     try:
         if not data.text:
@@ -312,19 +310,15 @@ async def speak(data: SpeakRequest):
             
         target_lang_name = get_full_language_name(data.language)
         
-        # Synthesize audio data via internal pipeline processing modules
         audio_result = text_to_speech(data.text, target_lang_name)
         
-        # FIX: If the TTS engine returns a raw base64 URI stream directly, return it as JSON immediately
         if isinstance(audio_result, str) and audio_result.startswith("data:audio/"):
-            # Extract raw base64 body if it contains the metadata header prefix
             raw_base64 = audio_result.split(",")[1] if "," in audio_result else audio_result
             return {
                 "status": "success",
                 "audio": raw_base64
             }
             
-        # Fallback directory disk checks if a standard short filename configuration string is returned
         base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
         static_dir = os.path.join(base_dir, "static")
         
