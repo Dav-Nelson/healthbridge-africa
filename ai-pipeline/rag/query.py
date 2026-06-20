@@ -23,6 +23,13 @@ LANGUAGE_ENFORCEMENT = {
     "Amharic": "መልስህን ሙሉ በሙሉ በአማርኛ ስጥ — እያንዳንዱ ዓረፍተ ነገር በአማርኛ መሆን አለበት፣ ከእንግሊዝኛ ጋር አትቀላቅል። (You must respond ENTIRELY in Amharic — every sentence, no mixing in English.)"
 }
 
+# Languages where Llama-3.1-8B-Instant has demonstrated reliable, coherent output.
+# Twi and Amharic are excluded from the forced re-translation pass because the
+# model frequently degenerates into repetitive token loops for these languages —
+# it's safer to keep the original (possibly partially English) answer than risk
+# returning broken, looping text.
+RELIABLE_FOR_TRANSLATION_PASS = {"Nigerian Pidgin", "Swahili", "Oromo"}
+
 
 def strip_markdown(text: str) -> str:
     """Remove markdown formatting characters so plain-text frontends render cleanly."""
@@ -35,6 +42,33 @@ def strip_markdown(text: str) -> str:
     text = re.sub(r'^#{1,6}\s*', '', text, flags=re.MULTILINE)
     text = re.sub(r'^[\*\-]\s+', '', text, flags=re.MULTILINE)
     return text.strip()
+
+
+def is_degenerate(text: str) -> bool:
+    """Detect repetitive/looping model output that should never be shown to a user."""
+    if not text or len(text) < 10:
+        return False
+
+    words = text.split()
+    if len(words) < 8:
+        return False
+
+    # Check if a small set of words dominates the response (repetition loop)
+    unique_words = set(words)
+    if len(unique_words) / len(words) < 0.25:
+        return True
+
+    # Check if the same short phrase (3-5 words) repeats many times in a row
+    for phrase_len in (3, 4, 5):
+        if len(words) < phrase_len * 4:
+            continue
+        phrases = [' '.join(words[i:i + phrase_len]) for i in range(len(words) - phrase_len)]
+        if phrases:
+            most_common_count = max(phrases.count(p) for p in set(phrases))
+            if most_common_count >= 5:
+                return True
+
+    return False
 
 
 def get_query_embedding(text: str) -> list:
@@ -87,15 +121,16 @@ def ask_rag(question: str, language: str = "English", history: list = []) -> dic
     cur.close()
     conn.close()
 
+    fallback_messages = {
+        "English": "I don't have enough reliable information to answer that confidently. Please consult a qualified healthcare provider or visit your nearest health facility.",
+        "Nigerian Pidgin": "I no get enough correct information to answer dat question well well. Abeg go see correct doctor or visit di health center near you.",
+        "Swahili": "Sina taarifa za kutosha kujibu swali hilo kwa uhakika. Tafadhali wasiliana na mtaalamu wa afya au tembelea kituo cha afya kilicho karibu nawe.",
+        "Oromo": "Gaaffii kanaaf deebii sirrii kennuuf odeeffannoo ga'aa hin qabu. Maaloo ogeessa fayyaa mariisisi yookaan dhaabbata fayyaa naannoo keessanitti argamu daawwadhaa.",
+        "Twi": "Minni nsɛm a edi mu pii a mede bɛyi saa asɛmmisa yi ano yiye. Yɛsrɛ wo, kɔ hwɛ oduruyɛfo anaa kɔ ayaresabea a ɛbɛn wo.",
+        "Amharic": "ለዚህ ጥያቄ በትክክል ለመመለስ በቂ መረጃ የለኝም። እባክዎ ብቁ የጤና ባለሙያ ያማክሩ ወይም በአቅራቢያዎ ወዳለው የጤና ተቋም ይሂዱ።"
+    }
+
     if not rows or rows[0][2] < 0.40:
-        fallback_messages = {
-            "English": "I don't have enough reliable information to answer that confidently. Please consult a qualified healthcare provider or visit your nearest health facility.",
-            "Nigerian Pidgin": "I no get enough correct information to answer dat question well well. Abeg go see correct doctor or visit di health center near you.",
-            "Swahili": "Sina taarifa za kutosha kujibu swali hilo kwa uhakika. Tafadhali wasiliana na mtaalamu wa afya au tembelea kituo cha afya kilicho karibu nawe.",
-            "Oromo": "Gaaffii kanaaf deebii sirrii kennuuf odeeffannoo ga'aa hin qabu. Maaloo ogeessa fayyaa mariisisi yookaan dhaabbata fayyaa naannoo keessanitti argamu daawwadhaa.",
-            "Twi": "Minni nsɛm a edi mu pii a mede bɛyi saa asɛmmisa yi ano yiye. Yɛsrɛ wo, kɔ hwɛ oduruyɛfo anaa kɔ ayaresabea a ɛbɛn wo.",
-            "Amharic": "ለዚህ ጥያቄ በትክክል ለመመለስ በቂ መረጃ የለኝም። እባክዎ ብቁ የጤና ባለሙያ ያማክሩ ወይም በአቅራቢያዎ ወዳለው የጤና ተቋም ይሂዱ።"
-        }
         return {
             "answer": fallback_messages.get(language, fallback_messages["English"]),
             "score": 0.0,
@@ -173,7 +208,16 @@ def ask_rag(question: str, language: str = "English", history: list = []) -> dic
 
     answer = response.choices[0].message.content
 
-    if language != "English":
+    # Safety check: if the initial generation is already degenerate, fall back immediately
+    if is_degenerate(answer):
+        print(f"Degenerate output detected on initial generation for language={language}")
+        answer = fallback_messages.get(language, fallback_messages["English"])
+        return {"answer": answer, "score": round(best_score, 4), "sources": sources}
+
+    # Only run the extra translation/cleanup pass for languages where Llama
+    # has shown reliable output. Twi and Amharic skip this — too high a risk
+    # of degenerate loops, and the original answer (cleaned of markdown) is safer.
+    if language in RELIABLE_FOR_TRANSLATION_PASS:
         try:
             verify_res = client.chat.completions.create(
                 model="llama-3.1-8b-instant",
@@ -193,12 +237,18 @@ def ask_rag(question: str, language: str = "English", history: list = []) -> dic
                 temperature=0.0
             )
             corrected = verify_res.choices[0].message.content.strip()
-            if corrected:
+            if corrected and not is_degenerate(corrected):
                 answer = corrected
+            elif is_degenerate(corrected):
+                print(f"Degenerate output detected on verification pass for language={language}, keeping original")
         except Exception as e:
             print(f"Language enforcement pass failed: {e}")
 
     answer = strip_markdown(answer)
+
+    # Final safety net — if somehow still degenerate after all processing, use fallback
+    if is_degenerate(answer):
+        answer = fallback_messages.get(language, fallback_messages["English"])
 
     return {
         "answer": answer,
