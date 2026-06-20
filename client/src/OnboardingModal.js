@@ -1,98 +1,123 @@
 import React, { useState } from 'react';
-import posthog from 'posthog-js';
 
-const SUPPORTED_LANGUAGES = ['English', 'Pidgin', 'Oromo', 'Twi', 'Swahili', 'Amharic'];
+// Updated: Replaced emoji text with standard 2-letter ISO country codes
+const LANGUAGES = [
+  { id: 'en', code: 'ng', name: 'English', native: 'English', tagline: "Let's talk about your health" },
+  { id: 'sw', code: 'ke', name: 'Swahili', native: 'Kiswahili', tagline: "Hebu tuzungumze kuhusu afya yako" },
+  { id: 'tw', code: 'gh', name: 'Twi', native: 'Twi', tagline: "Mma yɛnkasa fa wo kra ho" },
+  { id: 'pi', code: 'ng', name: 'Pidgin', native: 'Naija', tagline: "Make we tok about your health" },
+  { id: 'or', code: 'et', name: 'Oromo', native: 'Afaan Oromoo', tagline: "Fayyaa kee irratti haasofnu" },
+  { id: 'am', code: 'et', name: 'Amharic', native: 'አማርኛ', tagline: "ስለ ጤናዎ እናውራ" },
+];
 
 export default function OnboardingModal({ onComplete }) {
-  const [cityState, setCityState] = useState('');
-  const [primaryLang, setPrimaryLang] = useState('English');
-  const [secondaryLang, setSecondaryLang] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [selectedLanguage, setSelectedLanguage] = useState(null);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (isLoading) return;
-
-    setIsLoading(true);
-
-    try {
-      posthog.capture('user_onboarding_completed', {
-        city_state: cityState,
-        primary_language: primaryLang,
-        secondary_language: secondaryLang || 'None',
-      });
-
-      onComplete(primaryLang);
-    } catch (error) {
-      console.error("Tracking failed:", error);
-      onComplete(primaryLang);
-    } finally {
-      setIsLoading(false);
+  const handleContinue = () => {
+    if (selectedLanguage) {
+      onComplete(selectedLanguage);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-      <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md border border-gray-100 transform transition-all animate-in fade-in zoom-in-95 duration-200">
-        <h2 className="text-xl font-bold text-gray-800 mb-2">Welcome to HealthBridge</h2>
-        <p className="text-xs text-gray-500 mb-4">Please complete your profile to start your clinical consultation.</p>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider">City / Country</label>
-            <input
-              type="text"
-              required
-              disabled={isLoading}
-              className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2.5 border text-sm disabled:bg-gray-50 disabled:text-gray-400"
-              value={cityState}
-              onChange={(e) => setCityState(e.target.value)}
-              placeholder="e.g., Addis Ababa, ET or Lagos, NG"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider">Primary Language</label>
-            <select
-              disabled={isLoading}
-              className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2.5 border text-sm bg-white focus:border-blue-500 focus:ring-blue-500 disabled:bg-gray-50"
-              value={primaryLang}
-              onChange={(e) => setPrimaryLang(e.target.value)}
-            >
-              {SUPPORTED_LANGUAGES.map((lang) => (
-                <option key={lang} value={lang}>{lang}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider">Secondary Language (Optional)</label>
-            <input
-              type="text"
-              disabled={isLoading}
-              className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2.5 border text-sm focus:border-blue-500 focus:ring-blue-500 disabled:bg-gray-50"
-              value={secondaryLang}
-              onChange={(e) => setSecondaryLang(e.target.value)}
-              placeholder="e.g., French, Amharic, Swahili"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full bg-blue-600 text-white font-semibold py-2.5 px-4 rounded-lg hover:bg-blue-700 transition shadow-md shadow-blue-200 mt-2 flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed"
-          >
-            {isLoading ? (
-              <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-            ) : (
-              "Start Consultation"
-            )}
-          </button>
-        </form>
+    // FIX 1: Changed to "fixed inset-0 z-50" to force full-screen overlay
+    <div className="fixed inset-0 z-50 w-full h-full bg-health-bg font-body flex flex-col items-center justify-center p-4 overflow-hidden">
+      
+      {/* BACKGROUND: Adinkra Watermark */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.04]">
+        <svg viewBox="0 0 100 100" className="w-[120vw] h-[120vw] max-w-[800px] max-h-[800px] animate-spin-slow fill-health-accent">
+          <path d="M50 0 C60 20, 80 40, 100 50 C80 60, 60 80, 50 100 C40 80, 20 60, 0 50 C20 40, 40 20, 50 0 Z" />
+          <circle cx="50" cy="50" r="15" className="fill-health-bg" />
+        </svg>
       </div>
+
+      {/* FOREGROUND CONTENT */}
+      <div className="relative z-10 w-full max-w-md flex flex-col h-[90vh] max-h-[800px]">
+        
+        {/* Header */}
+        <div className="text-center mb-6 pt-8">
+          <h1 className="font-brand font-extrabold text-4xl text-health-textPrimary tracking-wide mb-2">
+            HealthBridge <span className="text-health-accentLight">Africa</span>
+          </h1>
+          <div className="h-[2px] w-3/4 mx-auto bg-gradient-to-r from-health-accent via-health-accentLight to-health-aiBubble mb-4 rounded-full"></div>
+          <p className="text-health-textSecondary text-lg font-light">
+            Choose your language to begin
+          </p>
+        </div>
+
+        {/* Scrollable Language List */}
+        <div className="flex-1 overflow-y-auto hide-scrollbar space-y-3 pb-4 px-2">
+          {LANGUAGES.map((lang) => {
+            const isSelected = selectedLanguage?.id === lang.id;
+            return (
+              <button
+                key={lang.id}
+                onClick={() => setSelectedLanguage(lang)}
+                className={`w-full text-left p-4 rounded-xl border transition-all duration-300 flex items-center gap-4 group
+                  ${isSelected 
+                    ? 'bg-health-surface border-health-accent shadow-[0_0_15px_rgba(212,131,10,0.15)]' 
+                    : 'bg-health-surface/60 border-health-border hover:border-health-textSecondary hover:bg-health-surface'
+                  }`}
+              >
+                {/* FIX 2: Replaced text emoji with Flag CDN image for universal OS support */}
+                <div className="shrink-0 flex items-center justify-center w-8 h-8 rounded-full overflow-hidden bg-health-chat border border-health-border">
+                  <img 
+                    src={`https://flagcdn.com/w40/${lang.code}.png`} 
+                    alt={`${lang.name} flag`} 
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+
+                <div className="flex-1">
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-health-textPrimary font-bold text-lg">{lang.name}</span>
+                    <span className="text-health-textSecondary text-sm">{lang.native}</span>
+                  </div>
+                  <p className="text-health-textSecondary font-light text-sm italic mt-0.5">
+                    "{lang.tagline}"
+                  </p>
+                </div>
+                
+                <div className={`shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300
+                  ${isSelected ? 'border-health-accent bg-health-accent text-health-bg' : 'border-health-border border-dashed text-transparent'}
+                `}>
+                  <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 20 20">
+                    <path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" />
+                  </svg>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Action Button & Footer area */}
+        <div className="pt-4 pb-2 mt-auto text-center flex flex-col gap-4">
+          <button
+            onClick={handleContinue}
+            disabled={!selectedLanguage}
+            className={`w-full py-4 rounded-full font-bold text-lg transition-all duration-300 flex items-center justify-center gap-2
+              ${selectedLanguage 
+                ? 'bg-health-accent text-health-bg hover:bg-health-accentLight hover:scale-[1.02] shadow-[0_4px_20px_rgba(212,131,10,0.3)] cursor-pointer' 
+                : 'bg-health-surface border border-health-border text-health-textSecondary/50 cursor-not-allowed'
+              }`}
+          >
+            Continue 
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+            </svg>
+          </button>
+          
+          <p className="text-health-textSecondary text-xs opacity-70 px-4">
+            ⚕️ This system is not a substitute for professional medical advice. Always consult a certified doctor.
+          </p>
+        </div>
+
+      </div>
+      
+      <style dangerouslySetInnerHTML={{__html: `
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      `}} />
     </div>
   );
 }
