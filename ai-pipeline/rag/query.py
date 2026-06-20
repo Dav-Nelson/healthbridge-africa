@@ -28,7 +28,7 @@ LANGUAGE_ENFORCEMENT = {
 # model frequently degenerates into repetitive token loops for these languages —
 # it's safer to keep the original (possibly partially English) answer than risk
 # returning broken, looping text.
-RELIABLE_FOR_TRANSLATION_PASS = {"Nigerian Pidgin", "Swahili", "Oromo"}
+RELIABLE_FOR_TRANSLATION_PASS = {"Nigerian Pidgin", "Swahili"}
 
 
 def strip_markdown(text: str) -> str:

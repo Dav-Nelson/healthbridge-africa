@@ -286,6 +286,7 @@ healthbridge-africa/
 - **FAQ is English-only** regardless of the active language setting.
 - **Free-tier hosting** means occasional 20–40 second cold-start delays on the AI pipeline after periods of inactivity.
 - **Feedback collection relies on manual Google Forms** alongside PostHog analytics. This works at low user volume but won't scale — a sentiment analysis agent tied directly to the product, surfacing user satisfaction and pain points automatically from real conversations, is planned for a future phase.
+- **Llama-3.1-8B-Instant**, our inference model, has uneven training data coverage across our supported languages.
 
 See the Week 6 postmortem for the full list of known issues and planned fixes.
 
