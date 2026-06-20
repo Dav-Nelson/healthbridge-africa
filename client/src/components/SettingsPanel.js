@@ -4,12 +4,21 @@ import { Settings, Volume2, Globe, Trash2, ShieldCheck } from 'lucide-react';
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 const SUPPORTED_LANGUAGES = ['English', 'Pidgin', 'Oromo', 'Twi', 'Swahili', 'Amharic'];
 
+const TRANSLATIONS = {
+  English: { title: "System Preferences", desc: "Personalise your HealthBridge Africa experience", prefLang: "Preferred Language", prefLangDesc: "Sets the default language for your consultation. You can also change this anytime from the header.", autoPlay: "Auto-play Audio", autoPlayDesc: "Automatically play voice responses after each reply", clear: "Clear Consultation History", clearDesc: "Permanently removes your session and all conversation data from both this device and our servers.", clearing: "Clearing...", cleared: "✓ Session cleared — refresh to start fresh", btnClear: "Clear my session", privacy: "HealthBridge Africa does not collect your name, email, or any personal identity. Your conversations are stored securely and linked only to your device session. Clearing your session permanently deletes all conversation data from our servers." },
+  Pidgin: { title: "System Settings", desc: "Set your HealthBridge Africa anyhow you like am", prefLang: "Language wey you prefer", prefLangDesc: "Choose the language wey you want make we use. You fit change am anytime for top.", autoPlay: "Play Audio Automaticaly", autoPlayDesc: "E go play voice immediately after answer", clear: "Clear Wetin We Don Tok", clearDesc: "E go delete everything wey we don tok from your phone and our server. Next time na fresh start.", clearing: "E dey clear...", cleared: "✓ E don clear — refresh make we start fresh", btnClear: "Clear my session", privacy: "HealthBridge Africa no dey collect your name or email. Everything wey we tok na secret and e dey tied to only this your device. If you clear your session, everything go wipe patapata." },
+  Swahili: { title: "Mipangilio ya Mfumo", desc: "Binafsisha uzoefu wako wa HealthBridge Africa", prefLang: "Lugha Inayopendekezwa", prefLangDesc: "Huweka lugha chaguo-msingi kwa ushauri wako. Unaweza kubadilisha hii wakati wowote.", autoPlay: "Cheza Sauti Moja kwa Moja", autoPlayDesc: "Cheza majibu ya sauti kiotomatiki baada ya kila jibu", clear: "Futa Historia ya Ushauri", clearDesc: "Hufuta kabisa kipindi chako na data yote ya mazungumzo kutoka kwa kifaa hiki na seva zetu.", clearing: "Inafuta...", cleared: "✓ Kipindi kimefutwa — onyesha upya", btnClear: "Futa kipindi changu", privacy: "HealthBridge Africa haikusanyi jina lako au barua pepe. Mazungumzo yako yanahifadhiwa kwa usalama. Kufuta kipindi chako hufuta data yote kabisa." },
+  Twi: { title: "Nhyehyɛe", desc: "Yɛ HealthBridge Africa sɛnea wopɛ", prefLang: "Kasa a wopɛ", prefLangDesc: "Kyerɛ kasa a wopɛ sɛ yɛde di dwuma. Wobɛtumi asesa no bere biara.", autoPlay: "To Nne No Ara", autoPlayDesc: "To nne mmuae no ara bere a yɛama mmuae", clear: "Pepa Yɛn Nkitahodie", clearDesc: "Pepa wo nkitahodie ne nsɛm nyinaa firi afiri yi ne yɛn mfidie so koraa.", clearing: "Ɛrepepa...", cleared: "✓ Yɛapepa — kɔ so bio", btnClear: "Pepa me nkitahodie", privacy: "HealthBridge Africa nnye wo din anaa email. Yɛakora wo nsɛm no so yie. Sɛ wopepa wo nkitahodie a, nsɛm no nyinaa yera koraa." },
+  Oromo: { title: "Filannoowwan Sirnaa", desc: "Muuxannoo HealthBridge Africa kee dhuunfaatti sirreessi", prefLang: "Afaan Filatame", prefLangDesc: "Afaan marii keetiif filatame. Yeroo barbaaddetti jijjiiruu dandeessa.", autoPlay: "Sagalee Ofiin Taphadhu", autoPlayDesc: "Deebii sagalee ofiin taphadhu eega deebiin kennamee booda", clear: "Seenaa Marii Haqi", clearDesc: "Marii kee fi ragaa hunda meeshaa kanaa fi sarvarii keenya irraa guutummaatti haqa.", clearing: "Haqaa jira...", cleared: "✓ Mariin haqameera — haareessi", btnClear: "Marii koo haqi", privacy: "HealthBridge Africa maqaa kee ykn iimeelii hin sassaabu. Mariin kee iccitiidhaan eegama. Marii kee haquun ragaa hunda guutummaatti balleessa." },
+  Amharic: { title: "የስርዓት ምርጫዎች", desc: "የHealthBridge Africa ተሞክሮዎን ያብጁ", prefLang: "የተመረጠ ቋንቋ", prefLangDesc: "ለምክክርዎ ነባሪ ቋንቋ ያዘጋጃል። ይህንን በማንኛውም ጊዜ መቀየር ይችላሉ።", autoPlay: "ድምጽ በራስ-ሰር አጫውት", autoPlayDesc: "ከእያንዳንዱ ምላሽ በኋላ የድምጽ ምላሾችን በራስ-ሰር አጫውት", clear: "የምክክር ታሪክን ያጽዱ", clearDesc: "የእርስዎን ክፍለ ጊዜ እና ሁሉንም የውይይት ውሂብ ከዚህ መሣሪያ እና አገልጋዮቻችን በቋሚነት ያስወግዳል።", clearing: "እያጸዳ ነው...", cleared: "✓ ክፍለ ጊዜ ጸድቷል — ያድሱ", btnClear: "ክፍለ ጊዜዬን ያጽዱ", privacy: "HealthBridge Africa ስምዎን ወይም ኢሜይልዎን አይሰበስብም። ውይይቶችዎ ደህንነታቸው በተጠበቀ ሁኔታ ይቀመጣሉ። ክፍለ ጊዜዎን ማጽዳት ሁሉንም ውሂብ በቋሚነት ይሰርዛል።" }
+};
+
 export default function SettingsPanel({ language, setLanguage }) {
-  const [autoPlay, setAutoPlay] = useState(() => {
-    return localStorage.getItem('hb_autoplay') === 'true';
-  });
+  const [autoPlay, setAutoPlay] = useState(() => localStorage.getItem('hb_autoplay') === 'true');
   const [cleared, setCleared] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
+
+  const t = TRANSLATIONS[language] || TRANSLATIONS['English'];
 
   const handleAutoPlayToggle = () => {
     const next = !autoPlay;
@@ -20,18 +29,10 @@ export default function SettingsPanel({ language, setLanguage }) {
   const handleClearHistory = async () => {
     const sessionId = localStorage.getItem('chat_session_id');
     setIsClearing(true);
-
     if (sessionId) {
-      try {
-        await fetch(`${API_BASE_URL}/api/voice/history/${sessionId}`, {
-          method: 'DELETE'
-        });
-      } catch (err) {
-        console.error('Failed to delete server history:', err);
-        // Still clear localStorage even if server delete fails
-      }
+      try { await fetch(`${API_BASE_URL}/api/voice/history/${sessionId}`, { method: 'DELETE' }); } 
+      catch (err) { console.error('Failed to delete server history:', err); }
     }
-
     localStorage.removeItem('chat_session_id');
     setIsClearing(false);
     setCleared(true);
@@ -39,35 +40,30 @@ export default function SettingsPanel({ language, setLanguage }) {
   };
 
   return (
-    <div className="flex-grow bg-white rounded-2xl shadow-sm border border-slate-200 overflow-y-auto">
-
-      <div className="p-5 border-b border-slate-100">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
-            <Settings size={18} className="text-slate-600" />
+    <div className="flex-grow bg-health-surface rounded-2xl shadow-sm border border-health-border overflow-y-auto">
+      <div className="p-5 border-b border-health-border">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-health-chat border border-health-border flex items-center justify-center flex-shrink-0">
+            <Settings size={18} className="text-health-accent" />
           </div>
           <div>
-            <h2 className="text-base font-bold text-slate-800">System Preferences</h2>
-            <p className="text-xs text-slate-400">Personalise your HealthBridge Africa experience</p>
+            <h2 className="text-lg font-brand font-bold text-health-textPrimary leading-tight">{t.title}</h2>
+            <p className="text-xs text-health-textSecondary">{t.desc}</p>
           </div>
         </div>
       </div>
 
       <div className="p-5 flex flex-col gap-6">
-
-        {/* Language preference */}
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2 mb-1">
-            <Globe size={15} className="text-teal-600" />
-            <span className="text-sm font-semibold text-slate-700">Preferred Language</span>
+            <Globe size={15} className="text-health-accentLight" />
+            <span className="text-sm font-bold text-health-textPrimary">{t.prefLang}</span>
           </div>
-          <p className="text-xs text-slate-400 mb-2">
-            Sets the default language for your consultation. You can also change this anytime from the header.
-          </p>
+          <p className="text-xs text-health-textSecondary mb-2">{t.prefLangDesc}</p>
           <select
             value={language}
             onChange={(e) => setLanguage(e.target.value)}
-            className="w-full p-2.5 rounded-xl border border-slate-200 text-sm text-slate-700 bg-slate-50 focus:ring-2 focus:ring-teal-500 outline-none"
+            className="w-full p-3 rounded-xl border border-health-border text-sm text-health-textPrimary bg-health-chat focus:border-health-accent outline-none appearance-none"
           >
             {SUPPORTED_LANGUAGES.map((lang) => (
               <option key={lang} value={lang}>{lang}</option>
@@ -75,58 +71,34 @@ export default function SettingsPanel({ language, setLanguage }) {
           </select>
         </div>
 
-        {/* Audio auto-play */}
-        <div className="flex items-center justify-between gap-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
+        <div className="flex items-center justify-between gap-4 p-4 bg-health-chat rounded-xl border border-health-border">
           <div className="flex items-start gap-3 min-w-0">
-            <Volume2 size={18} className="text-slate-500 flex-shrink-0 mt-0.5" />
+            <Volume2 size={18} className="text-health-accent flex-shrink-0 mt-0.5" />
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-slate-700">Auto-play Audio</p>
-              <p className="text-xs text-slate-400 leading-snug">Automatically play voice responses after each reply</p>
+              <p className="text-sm font-bold text-health-textPrimary">{t.autoPlay}</p>
+              <p className="text-xs text-health-textSecondary leading-snug mt-0.5">{t.autoPlayDesc}</p>
             </div>
           </div>
-          <button
-            onClick={handleAutoPlayToggle}
-            aria-label="Toggle auto-play audio"
-            className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${
-              autoPlay ? 'bg-teal-500' : 'bg-slate-300'
-            }`}
-          >
-            <span className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${
-              autoPlay ? 'translate-x-5' : 'translate-x-0'
-            }`} />
+          <button onClick={handleAutoPlayToggle} className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 border ${autoPlay ? 'bg-health-accent border-health-accent' : 'bg-health-bg border-health-border'}`}>
+            <span className={`absolute top-[2px] left-[2px] w-4 h-4 bg-health-textPrimary rounded-full transition-transform ${autoPlay ? 'translate-x-5' : 'translate-x-0'}`} />
           </button>
         </div>
 
-        {/* Clear history */}
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2 mb-1">
             <Trash2 size={15} className="text-red-500" />
-            <span className="text-sm font-semibold text-slate-700">Clear Consultation History</span>
+            <span className="text-sm font-bold text-health-textPrimary">{t.clear}</span>
           </div>
-          <p className="text-xs text-slate-400 mb-2">
-            Permanently removes your session and all conversation data from both this device and our servers. Your next conversation will start completely fresh.
-          </p>
-          <button
-            onClick={handleClearHistory}
-            disabled={isClearing}
-            className="w-full p-2.5 rounded-xl border border-red-200 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isClearing
-              ? 'Clearing...'
-              : cleared
-              ? '✓ Session cleared — refresh to start fresh'
-              : 'Clear my session'}
+          <p className="text-xs text-health-textSecondary mb-2">{t.clearDesc}</p>
+          <button onClick={handleClearHistory} disabled={isClearing} className="w-full p-3 rounded-xl border border-red-900/50 text-sm font-bold text-red-500 bg-red-900/10 hover:bg-red-900/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+            {isClearing ? t.clearing : cleared ? t.cleared : t.btnClear}
           </button>
         </div>
 
-        {/* Privacy note */}
-        <div className="flex items-start gap-3 p-4 bg-teal-50 rounded-xl border border-teal-100">
-          <ShieldCheck size={18} className="text-teal-600 flex-shrink-0 mt-0.5" />
-          <p className="text-xs text-slate-600 leading-relaxed">
-            HealthBridge Africa does not collect your name, email, or any personal identity. Your conversations are stored securely and linked only to your device session. Clearing your session permanently deletes all conversation data from our servers.
-          </p>
+        <div className="flex items-start gap-3 p-4 bg-health-chat/50 rounded-xl border border-health-border">
+          <ShieldCheck size={18} className="text-health-accent flex-shrink-0 mt-0.5" />
+          <p className="text-xs text-health-textSecondary leading-relaxed">{t.privacy}</p>
         </div>
-
       </div>
     </div>
   );

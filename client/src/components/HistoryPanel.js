@@ -38,8 +38,8 @@ export default function HistoryPanel() {
 
   if (isLoading) {
     return (
-      <div className="flex-grow bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col items-center justify-center text-slate-400">
-        <Loader2 size={32} className="animate-spin text-teal-500 mb-3" />
+      <div className="flex-grow bg-health-surface rounded-2xl shadow-sm border border-health-border p-6 flex flex-col items-center justify-center text-health-textSecondary">
+        <Loader2 size={32} className="animate-spin text-health-accent mb-3" />
         <p className="text-sm">Loading your history...</p>
       </div>
     );
@@ -47,7 +47,7 @@ export default function HistoryPanel() {
 
   if (error) {
     return (
-      <div className="flex-grow bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col items-center justify-center text-slate-400">
+      <div className="flex-grow bg-health-surface rounded-2xl shadow-sm border border-health-border p-6 flex flex-col items-center justify-center text-health-textSecondary">
         <p className="text-sm text-red-500">{error}</p>
       </div>
     );
@@ -55,27 +55,30 @@ export default function HistoryPanel() {
 
   if (messages.length === 0) {
     return (
-      <div className="flex-grow bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col items-center justify-center text-slate-400">
-        <History size={48} className="text-slate-300 mb-3" />
-        <p className="text-base font-medium text-slate-700">No Consultation History Yet</p>
-        <p className="text-xs text-center mt-1">Your localized medical discussions will appear recorded here securely.</p>
+      <div className="flex-grow bg-health-surface rounded-2xl shadow-sm border border-health-border p-6 flex flex-col items-center justify-center text-health-textSecondary">
+        <History size={48} className="text-health-border mb-4 opacity-50" />
+        <p className="text-lg font-brand font-bold text-health-textPrimary">No Consultation History</p>
+        <p className="text-xs text-center mt-2 max-w-xs">Your localized medical discussions will appear recorded here securely.</p>
       </div>
     );
   }
 
   return (
-    <div className="flex-grow bg-white rounded-2xl shadow-sm border border-slate-200 p-4 md:p-6 overflow-y-auto flex flex-col gap-3">
+    <div className="flex-grow bg-health-surface rounded-2xl shadow-sm border border-health-border p-4 md:p-6 overflow-y-auto flex flex-col gap-4">
+      <div className="text-health-textSecondary text-center text-[10px] uppercase tracking-widest opacity-60 mb-2">
+        Previous Consultations
+      </div>
       {messages.map((msg, index) => (
         <div
           key={index}
-          className={`max-w-[88%] rounded-xl px-4 py-2.5 text-sm ${
+          className={`max-w-[88%] rounded-[18px] px-4 py-3 text-[15px] shadow-sm ${
             msg.role === 'user'
-              ? 'bg-teal-50 text-teal-900 self-end'
-              : 'bg-slate-50 text-slate-800 self-start border border-slate-200'
+              ? 'bg-health-userBubble text-health-textPrimary self-end rounded-tr-[4px]'
+              : 'bg-health-aiBubble text-health-textPrimary self-start rounded-tl-[4px]'
           }`}
         >
-          <p className="whitespace-pre-line">{msg.content}</p>
-          <p className="text-[10px] text-slate-400 mt-1">
+          <p className="whitespace-pre-line leading-relaxed">{msg.content}</p>
+          <p className="text-[10px] text-health-textSecondary opacity-70 mt-2 text-right">
             {new Date(msg.created_at).toLocaleString()}
           </p>
         </div>
