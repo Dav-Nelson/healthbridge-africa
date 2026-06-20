@@ -15,17 +15,12 @@ const LANGUAGE_ISO_MAP = {
 };
 
 // --- TRANSLATION DICTIONARY ---
+// Removed the hardcoded ack/q strings since the AI handles triage dynamically now!
 const TRANSLATIONS = {
   en: {
     welcome1: "Welcome to HealthBridge Africa 🌍\nI'm your personal health companion, here to listen and help — in your language, at your pace.\nYou are safe here. Everything you share stays between us. 💛",
-    welcome2: "Please tell me — what is bothering you today? What symptom or health concern brought you here?",
-    ack1: "Thank you for sharing that with me. It takes courage to speak about what you're feeling — and you've already taken the most important step. 💛",
-    q1: "Can you tell me — when did this start? Did it come on suddenly, or has it been building up gradually?",
-    ack2: "I hear you. You are not alone — many people experience exactly what you're describing. 🌍",
-    q2: "And right now, how are you feeling? Is it getting better, staying the same, or getting worse?",
-    ack3: "You did the right thing by reaching out today. Most people wait — you didn't, and that matters. 💪",
-    transition: "I now have a clear picture of what you're going through. Let's work through this together — please feel free to ask me anything. We're in this together. 🌿",
-    placeholder: "Type your health question...",
+    welcome2: "Please tell me — what is bothering you today? Or what health question can I answer for you?",
+    placeholder: "Type your health question or symptom...",
     recording: "Listening...",
     wait: "Wait for response...",
     disclaimer: "⚕️ This system is not a substitute for professional medical advice. Always consult a certified doctor.",
@@ -33,43 +28,25 @@ const TRANSLATIONS = {
   },
   pcm: {
     welcome1: "Welcome to HealthBridge Africa 🌍\nI be your personal health companion. I dey here to listen and help you for your own language.\nYou dey safe here. Everything wey you tell me na secret. 💛",
-    welcome2: "Abeg tell me — wetin dey do you today? Which sickness or symptom make you come here?",
-    ack1: "Thank you as you share this one with me. E take mind to talk how you dey feel — and you don take the first right step. 💛",
-    q1: "You fit tell me — when e start? E just start suddenly, or e don dey do you small small?",
-    ack2: "I hear you. You no dey alone — many people dey experience this exact thing wey you just talk. 🌍",
-    q2: "And right now, how you dey feel? E dey better, e still dey exactly as e be, or e dey worse?",
-    ack3: "You do well as you reach out today. Many people dey delay — but you no delay, and that one matter well well. 💪",
-    transition: "I don get clear picture of wetin dey do you. Make we work through am together — abeg feel free to ask me anything. We dey this together. 🌿",
-    placeholder: "Type your health question...",
+    welcome2: "Abeg tell me — wetin dey do you today? Or which health question you want ask?",
+    placeholder: "Type wetin dey do you...",
     recording: "I dey listen...",
     wait: "Abeg wait small...",
     disclaimer: "⚕️ This system no be doctor substitute. Make you always check certified doctor.",
     secure: "Safe Health Tok"
   },
   sw: {
-    welcome1: "Karibu HealthBridge Africa 🌍\nMimi ni rafiki yako wa afya, hapa kusikiliza na kusaidia — kwa lugha yako, kwa kasi yako.\nUko salama hapa. Kila kitu unachoshiriki kinabaki kati yetu. 💛",
-    welcome2: "Tafadhali niambie — nini kinakusumbua leo? Ni dalili gani au tatizo gani la afya limekuleta hapa?",
-    ack1: "Asante kwa kushiriki hilo nami. Inachukua ujasiri kuzungumza juu ya kile unachohisi — na tayari umechukua hatua muhimu zaidi. 💛",
-    q1: "Unaweza kuniambia — hii ilianza lini? Je, ilianza ghafla, au imekuwa ikijijenga hatua kwa hatua?",
-    ack2: "Ninakusikia. Hauko peke yako — watu wengi hupitia kile unachoelezea. 🌍",
-    q2: "Na sasa hivi, unajisikiaje? Je, inakuwa bora, inabaki vile vile, au inakuwa mbaya zaidi?",
-    ack3: "Umefanya jambo sahihi kwa kutafuta msaada leo. Watu wengi husubiri — wewe hukusubiri, na hilo ni muhimu. 💪",
-    transition: "Sasa nina picha wazi ya kile unachopitia. Hebu tufanye kazi kupitia hili pamoja — tafadhali jisikie huru kuniuliza chochote. Tuko pamoja katika hili. 🌿",
-    placeholder: "Andika swali lako la afya...",
+    welcome1: "Karibu HealthBridge Africa 🌍\nMimi ni rafiki yako wa afya, hapa kusikiliza na kusaidia — kwa lugha yako.\nUko salama hapa. Kila kitu unachoshiriki kinabaki kati yetu. 💛",
+    welcome2: "Tafadhali niambie — nini kinakusumbua leo? Au ninaweza kujibu swali gani la afya?",
+    placeholder: "Andika swali lako la afya au dalili...",
     recording: "Inasikiliza...",
     wait: "Subiri majibu...",
-    disclaimer: "⚕️ Mfumo huu sio mbadala wa ushauri wa kitaalamu wa matibabu. Daima shauriana na daktari aliyethibitishwa.",
+    disclaimer: "⚕️ Mfumo huu sio mbadala wa ushauri wa kitaalamu wa matibabu. Daima shauriana na daktari.",
     secure: "Ushauri Salama wa Kliniki"
   },
   tw: {
     welcome1: "Akwaaba kɔ HealthBridge Africa 🌍\nMe yɛ wo apɔwmuden adamfo, me wɔ ha sɛ mɛtie wo na m'aboa wo — wɔ wo kasa mu.\nWo ho dwo wo wɔ ha. Biribiara a woka kyerɛ me no yɛ kokoam asɛm. 💛",
-    welcome2: "Mesrɛ wo ka kyerɛ me — dɛn na ɛhaw wo nnɛ? Ɔyareɛ nkaeɛ bɛn na ɛde wo baa ha?",
-    ack1: "Meda wo ase sɛ waka eyi akyerɛ me. Ɛhia akokoduru sɛ wobɛka nea wote nka — na woadi anammɔn a ɛho hia paa dada. 💛",
-    q1: "Wobɛtumi aka akyerɛ me — ɛfiri aseɛ dabi? Ɛbaa prɛko pɛ, anaa ɛnyaa nkɔsoɔ nkakrankakra?",
-    ack2: "Mate nea woka no. Ɛnyɛ wo nko ara — nnipa pii fa nea woka yi mu. 🌍",
-    q2: "Na seesei, wote nka sɛn? Ɛreyɛ yie, ɛte sɛnea ɛteɛ no ara, anaa ɛreyɛ basaa?",
-    ack3: "Woyɛɛ ade pa sɛ wofrii mu bae nnɛ. Nnipa pii twɛn — woantwɛn, na ɛno ho hia. 💪",
-    transition: "Seesei minim nea worefa mu no yie. Ma yɛnyɛ eyi ho adwuma bom — mesrɛ wo bisa me biribiara. Yɛbom wɔ eyi mu. 🌿",
+    welcome2: "Mesrɛ wo ka kyerɛ me — dɛn na ɛhaw wo nnɛ? Anaa apɔwmuden asɛm bɛn na wobisa?",
     placeholder: "Kyerɛw wo apɔwmuden asɛm...",
     recording: "Mretie...",
     wait: "Twɛn mmuae...",
@@ -77,29 +54,17 @@ const TRANSLATIONS = {
     secure: "Ayaresa Nkitahodie a Ɛyɛ Ahobammɔ"
   },
   om: {
-    welcome1: "Baga nagaan gara HealthBridge Africa dhuftan 🌍\nAni hiriyyaa fayyaa keeti, dhaggeeffachuu fi si gargaaruuf asan jira — afaan keetiin.\nAsitti nageenyi kee eegamaadha. Wanti ati natti himtu hundi icciitidha. 💛",
-    welcome2: "Mee natti himi — har'a maaltu si rakkisaa jira? Mallattoo ykn dhimma fayyaa akkamiitu as si fides?",
-    ack1: "Waan kana natti himuu keetiif galatoomi. Waan sitti dhagahamu dubbachuun ija jabina gaafata — tarkaanfii barbaachisaa fudhatteetta. 💛",
-    q1: "Natti himuu dandeessaa — kun yoom eegale? Akkuma tasa dhufe moo suuta suuta dabalaa deeme?",
-    ack2: "Sin dhagaha. Ati kophaa kee miti — namoonni baay'een waan ati ibsitu kana ni mudatu. 🌍",
-    q2: "Amma hoo akkam sitti dhagahamaa jira? Fooyya'aa jira, akkuma jirutti jira, moo itti cimee jira?",
-    ack3: "Har'a gargaarsa gaafachuun kee sirriidha. Namoonni baay'een ni eegu — ati hin eegne, kun immoo baay'ee barbaachisaadha. 💪",
-    transition: "Amma haala kee sirriitti hubadheera. Waliin haa hojjennu — maaloo waan feete na gaafadhu. Nuti waliin jirra. 🌿",
+    welcome1: "Baga nagaan gara HealthBridge Africa dhuftan 🌍\nAni hiriyyaa fayyaa keeti, dhaggeeffachuu fi si gargaaruuf asan jira.\nAsitti nageenyi kee eegamaadha. Wanti ati natti himtu hundi icciitidha. 💛",
+    welcome2: "Mee natti himi — har'a maaltu si rakkisaa jira? Ykn gaaffii fayyaa akkamii qabda?",
     placeholder: "Gaaffii fayyaa kee barreessi...",
     recording: "Dhaggeeffachaa jira...",
     wait: "Deebii eegi...",
-    disclaimer: "⚕️ Sirni kun gorsa yaala ogeessaa bakka hin bu'u. Yeroo mara ogeessa fayyaa hayyama qabu mariisisi.",
+    disclaimer: "⚕️ Sirni kun gorsa yaala ogeessaa bakka hin bu'u. Yeroo mara ogeessa fayyaa mariisisi.",
     secure: "Marii Kiliinikaa Icciitii"
   },
   am: {
-    welcome1: "ወደ HealthBridge Africa በደህና መጡ 🌍\nእኔ የእርስዎ የግል ጤና ጓደኛ ነኝ፣ እርስዎን ለማዳመጥ እና ለመርዳት እዚህ ነኝ — በቋንቋዎ።\nእዚህ ደህንነትዎ የተጠበቀ ነው። የሚያጋሩት ማንኛውም ነገር ሚስጥር ነው። 💛",
-    welcome2: "እባክዎ ይንገሩኝ — ዛሬ ምን እየረበሸዎት ነው? ምን ዓይነት የጤና ችግር ነው እዚህ ያመጣዎት?",
-    ack1: "ይህንን ስላጋሩኝ አመሰግናለሁ። የሚሰማዎትን መናገር ድፍረት ይጠይቃል — እና እርስዎ ቀድሞውኑ በጣም አስፈላጊ የሆነውን እርምጃ ወስደዋል። 💛",
-    q1: "ሊነግሩኝ ይችላሉ — ይህ መቼ ጀመረ? በድንገት ነው የመጣው ወይንስ ቀስ በቀስ እያደገ ነው?",
-    ack2: "እየሰማሁዎት ነው። እርስዎ ብቻዎን አይደሉም — ብዙ ሰዎች እርስዎ የሚገልጹትን ተመሳሳይ ነገር ያጋጥማቸዋል። 🌍",
-    q2: "እና አሁን፣ እንዴት ይሰማዎታል? እየተሻሻለ ነው፣ እንዳለ ነው፣ ወይንስ እየባሰበት ነው?",
-    ack3: "ዛሬ እርዳታ በመጠየቅ ትክክለኛውን ነገር አድርገዋል። አብዛኛዎቹ ሰዎች ይጠብቃሉ — እርስዎ አልጠበቁም፣ እና ይሄ ትልቅ ትርጉም አለው። 💪",
-    transition: "አሁን ምን እያለፉ እንዳሉ ግልጽ የሆነ ምስል አለኝ። ይህንን አብረን እንለፍ — እባክዎ ማንኛውንም ነገር ለመጠየቅ ነፃ ይሁኑ። በዚህ ውስጥ አብረን ነን። 🌿",
+    welcome1: "ወደ HealthBridge Africa በደህና መጡ 🌍\nእኔ የእርስዎ የግል ጤና ጓደኛ ነኝ፣ እርስዎን ለማዳመጥ እና ለመርዳት እዚህ ነኝ።\nእዚህ ደህንነትዎ የተጠበቀ ነው። የሚያጋሩት ማንኛውም ነገር ሚስጥር ነው። 💛",
+    welcome2: "እባክዎ ይንገሩኝ — ዛሬ ምን እየረበሸዎት ነው? ወይም ምን የጤና ጥያቄ መመለስ እችላለሁ?",
     placeholder: "የጤና ጥያቄዎን እዚህ ይጻፉ...",
     recording: "እያዳመጥኩ ነው...",
     wait: "ምላሽ ይጠብቁ...",
@@ -127,116 +92,90 @@ export default function App() {
   const [showHelp, setShowHelp] = useState(false);
   const [activeTab, setActiveTab] = useState('consultation');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-  const [intakeStep, setIntakeStep] = useState(0);
   const [isTyping, setIsTyping] = useState(false);
-  const [intakeData, setIntakeData] = useState({ complaint: '', onset: '', currentState: '' });
 
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
+  const hasWelcomedRef = useRef(false);
 
   const getCleanLanguageCode = () => {
     const currentLang = typeof language === 'string' ? language : language.name;
     return LANGUAGE_ISO_MAP[currentLang.toLowerCase()] || currentLang.toLowerCase();
   };
 
-  // --- NEW: Reset Chat when Language Changes ---
-  const handleLanguageChange = (newLang) => {
-    setLanguage(newLang);
-    // Clear chat and reset intake steps
-    setMessages([]);
-    setIntakeStep(0);
-    setIntakeData({ complaint: '', onset: '', currentState: '' });
-    // Generate a new session ID so the AI backend forgets the previous language context
-    localStorage.setItem('chat_session_id', crypto.randomUUID());
-  };
-
-  // Get current translations based on selected language
   const langCode = getCleanLanguageCode();
   const t = TRANSLATIONS[langCode] || TRANSLATIONS['en'];
 
+  // Initial Welcome Flow
   useEffect(() => {
-    if (!showOnboarding && intakeStep === 0) {
+    if (!showOnboarding && !hasWelcomedRef.current) {
+      hasWelcomedRef.current = true;
       startSilentTracking(language);
 
       const runWelcome = async () => {
         setIsTyping(true);
         await new Promise(r => setTimeout(r, 2000));
-        // Use translation
-        setMessages(prev => [...prev, { id: Date.now(), sender: 'bot', text: t.welcome1 }]);
+        setMessages([{ id: Date.now(), sender: 'bot', text: t.welcome1 }]);
         
         await new Promise(r => setTimeout(r, 1500));
-        // Use translation
         setMessages(prev => [...prev, { id: Date.now()+1, sender: 'bot', text: t.welcome2 }]);
         setIsTyping(false);
-        setIntakeStep(1);
       };
       runWelcome();
     }
-  }, [showOnboarding, language, intakeStep, t.welcome1, t.welcome2]);
+  }, [showOnboarding, language, t.welcome1, t.welcome2]);
+
+  // Handle changing languages from the Settings Panel
+  const handleLanguageChange = (newLang) => {
+    setLanguage(newLang);
+    setMessages([]); // Clear chat history visually
+    localStorage.setItem('chat_session_id', crypto.randomUUID()); // Reset backend memory
+    
+    // Immediately greet in the new language
+    const targetLangCode = LANGUAGE_ISO_MAP[newLang.toLowerCase()] || 'en';
+    const newT = TRANSLATIONS[targetLangCode] || TRANSLATIONS['en'];
+
+    setIsTyping(true);
+    setTimeout(() => {
+      setMessages([{ id: Date.now(), sender: 'bot', text: newT.welcome1 }]);
+      setTimeout(() => {
+        setMessages(prev => [...prev, { id: Date.now()+1, sender: 'bot', text: newT.welcome2 }]);
+        setIsTyping(false);
+      }, 1500);
+    }, 1000);
+  };
 
   const handleSendMessage = async (textToProcess) => {
     if (!textToProcess.trim()) return;
 
     setMessages(prev => [...prev, { id: Date.now(), sender: 'user', text: textToProcess }]);
     setInputValue('');
-
-    const pushAiMessage = async (text, delay = 1500) => {
-      setIsTyping(true);
-      await new Promise(r => setTimeout(r, delay));
-      setIsTyping(false);
-      setMessages(prev => [...prev, { id: Date.now(), sender: 'bot', text }]);
-    };
-
-    if (intakeStep === 1) {
-      setIntakeData(prev => ({ ...prev, complaint: textToProcess }));
-      await pushAiMessage(t.ack1, 1000);
-      await pushAiMessage(t.q1, 1500);
-      setIntakeStep(2);
-      return;
-    }
-    if (intakeStep === 2) {
-      setIntakeData(prev => ({ ...prev, onset: textToProcess }));
-      await pushAiMessage(t.ack2, 1000);
-      await pushAiMessage(t.q2, 1500);
-      setIntakeStep(3);
-      return;
-    }
-    if (intakeStep === 3) {
-      setIntakeData(prev => ({ ...prev, currentState: textToProcess }));
-      await pushAiMessage(t.ack3, 1000);
-      await pushAiMessage(t.transition, 2000);
-      setIntakeStep(4);
-      return;
-    }
-
     setIsLoading(true);
+
     try {
       const targetCode = getCleanLanguageCode();
       const sessionId = getOrCreateSessionId();
       let finalMessageToSend = textToProcess;
 
-      if (intakeStep === 4) {
+      // SMART AI TRIAGE: Inject instructions ONLY on the first message so the AI knows how to route it
+      const isFirstUserMessage = !messages.some(m => m.sender === 'user');
+
+      if (isFirstUserMessage) {
         finalMessageToSend = `[SYSTEM INSTRUCTIONS - STRICTLY ADHERE TO THESE]
 You are HealthBridge Africa — a warm, culturally grounded AI health companion built for African communities.
 Respond natively in ${language.name || language}.
 
-CONTEXT FROM CLINICAL INTAKE:
-- Presenting complaint: ${intakeData.complaint}
-- Onset: ${intakeData.onset}
-- Current state: ${intakeData.currentState}
+Analyze the user's opening message: "${textToProcess}"
 
 BEHAVIOUR RULES:
-1. Respond warmly — like a knowledgeable community health worker who genuinely cares, not a clinical report.
-2. You already know the intake information above — NEVER ask the user to repeat it.
-3. When you use any medical or clinical term, ALWAYS immediately explain it in plain language using a simple, relatable African analogy.
-4. Weave in words of affirmation naturally.
-5. Never give a definitive diagnosis. Offer clear explanations and practical guidance.
-6. Ask only ONE follow-up question at a time.
-7. Always close specific medical guidance with: "⚕️ Remember: I'm here to support, not replace, a certified doctor."
+1. GENERAL QUESTION: If the user is asking a general health fact or question (e.g., "about cancer", "what is malaria"), simply answer the question clearly, warmly, and accurately. Do NOT ask triage questions.
+2. SYMPTOM/COMPLAINT: If the user is describing a personal symptom or feeling sick (e.g., "my head hurts", "I am coughing"), express brief empathy, then act as a triage nurse and ask ONE follow-up question (like onset or severity) to understand better.
+3. When you use any medical term, immediately explain it in plain language using a simple, relatable African analogy.
+4. Never give a definitive diagnosis.
+5. Always close medical guidance with: "⚕️ Remember: I'm here to support, not replace, a certified doctor."
 [END OF SYSTEM INSTRUCTIONS]
 
-User's new message: "${textToProcess}"`;
+User's message: "${textToProcess}"`;
       }
 
       const response = await fetch(`${API_BASE_URL}/api/voice/text-chat`, {
@@ -249,7 +188,6 @@ User's new message: "${textToProcess}"`;
       const data = await response.json();
 
       setMessages(prev => [...prev, { sender: 'bot', text: data.response, language: targetCode }]);
-      if (intakeStep === 4) setIntakeStep(5);
     } catch (error) {
       setMessages(prev => [...prev, { sender: 'bot', text: "Sorry, I am having trouble connecting to the server right now." }]);
     } finally {
@@ -300,14 +238,17 @@ User's new message: "${textToProcess}"`;
       if (!response.ok) throw new Error('Voice chat failed');
       const data = await response.json();
       
-      if (intakeStep < 4 && data.transcribed) {
+      const isFirstUserMessage = !messages.some(m => m.sender === 'user');
+
+      // Pass transcribed audio to the text pipeline so the Smart Triage instructions get applied!
+      if (isFirstUserMessage && data.transcribed) {
         setIsLoading(false); 
         handleSendMessage(data.transcribed);
         return;
       }
 
       if (data.transcribed) setMessages(prev => [...prev, { sender: 'user', text: data.transcribed }]);
-      setMessages(prev => [...prev, { sender: 'bot', text: data.response, language: targetCode }]);
+      if (data.response) setMessages(prev => [...prev, { sender: 'bot', text: data.response, language: targetCode }]);
     } catch (error) {
       setMessages(prev => [...prev, { sender: 'bot', text: "Sorry, I couldn't process your voice message." }]);
     } finally {
@@ -318,7 +259,7 @@ User's new message: "${textToProcess}"`;
   const currentLangName = typeof language === 'string' ? language : language.name;
 
   return (
-    <div className="min-h-screen bg-health-bg text-health-textPrimary flex font-body antialiased overflow-hidden relative">
+    <div className="min-h-screen w-full max-w-[100vw] overflow-x-hidden bg-health-bg text-health-textPrimary flex font-body antialiased overflow-hidden relative break-words">
 
       {showOnboarding && (
         <OnboardingModal onComplete={(selectedLanguage) => {
@@ -406,7 +347,6 @@ User's new message: "${textToProcess}"`;
           {activeTab === 'consultation' && (
             <div className="flex flex-col h-full">
               <div className="flex-1 overflow-y-auto px-4 md:px-6 py-4">
-                {/* Fixed ChatDisplay call including the new language and secureText props */}
                 <ChatDisplay 
                   messages={messages} 
                   isTyping={isTyping} 
