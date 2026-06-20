@@ -2,7 +2,9 @@ import React from 'react';
 
 const getFlag = (lang) => {
   const lowerLang = lang?.toLowerCase() || '';
-  if (lowerLang.includes('english') || lowerLang.includes('pidgin')) return '🇳🇬';
+  // FIX: Returns null so no flag renders for English
+  if (lowerLang.includes('english')) return null; 
+  if (lowerLang.includes('pidgin')) return '🇳🇬';
   if (lowerLang.includes('swahili')) return '🇰🇪';
   if (lowerLang.includes('twi')) return '🇬🇭';
   if (lowerLang.includes('oromo') || lowerLang.includes('amharic')) return '🇪🇹';
@@ -10,6 +12,8 @@ const getFlag = (lang) => {
 };
 
 export default function Header({ language }) {
+  const currentFlag = getFlag(language);
+
   return (
     <header className="flex items-center justify-between py-3 px-2 md:px-4 w-full bg-transparent">
       
@@ -25,7 +29,6 @@ export default function Header({ language }) {
 
         <div>
           <h2 className="font-brand font-extrabold text-health-textPrimary text-lg leading-none tracking-wide">
-            {/* FIXED: Changed text color to emerald-400 so it pops on dark backgrounds */}
             HealthBridge <span className="text-emerald-400">Africa</span>
           </h2>
           <p className="text-health-textSecondary text-[11px] font-medium mt-1 uppercase tracking-wider">
@@ -35,7 +38,10 @@ export default function Header({ language }) {
       </div>
 
       <div className="flex items-center gap-2 bg-health-chat border border-health-border px-3 py-1.5 rounded-full shadow-sm shrink-0">
-        <span className="text-lg leading-none">{getFlag(language)}</span>
+        {/* Only renders the span if there is a flag to show */}
+        {currentFlag && (
+          <span className="text-lg leading-none">{currentFlag}</span>
+        )}
         <span className="text-health-textPrimary text-sm font-medium hidden sm:block">
           {language || 'English'}
         </span>

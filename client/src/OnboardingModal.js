@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 
-// Updated: Replaced emoji text with standard 2-letter ISO country codes
 const LANGUAGES = [
   { id: 'en', code: 'ng', name: 'English', native: 'English', tagline: "Let's talk about your health" },
   { id: 'sw', code: 'ke', name: 'Swahili', native: 'Kiswahili', tagline: "Hebu tuzungumze kuhusu afya yako" },
@@ -20,7 +19,6 @@ export default function OnboardingModal({ onComplete }) {
   };
 
   return (
-    // FIX 1: Changed to "fixed inset-0 z-50" to force full-screen overlay
     <div className="fixed inset-0 z-50 w-full h-full bg-health-bg font-body flex flex-col items-center justify-center p-4 overflow-hidden">
       
       {/* BACKGROUND: Adinkra Watermark */}
@@ -59,13 +57,17 @@ export default function OnboardingModal({ onComplete }) {
                     : 'bg-health-surface/60 border-health-border hover:border-health-textSecondary hover:bg-health-surface'
                   }`}
               >
-                {/* FIX 2: Replaced text emoji with Flag CDN image for universal OS support */}
                 <div className="shrink-0 flex items-center justify-center w-8 h-8 rounded-full overflow-hidden bg-health-chat border border-health-border">
-                  <img 
-                    src={`https://flagcdn.com/w40/${lang.code}.png`} 
-                    alt={`${lang.name} flag`} 
-                    className="w-full h-full object-cover"
-                  />
+                  {/* FIX: Removes Nigerian flag specifically for English */}
+                  {lang.name === 'English' ? (
+                    <span className="text-lg leading-none">🌍</span>
+                  ) : (
+                    <img 
+                      src={`https://flagcdn.com/w40/${lang.code}.png`} 
+                      alt={`${lang.name} flag`} 
+                      className="w-full h-full object-cover"
+                    />
+                  )}
                 </div>
 
                 <div className="flex-1">
