@@ -1,3 +1,40 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ==========================================================================
+   HEALTHBRIDGE AFRICA - CUSTOM SCROLLBARS
+   ========================================================================== */
+
+/* For Webkit browsers (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+  width: 8px; /* Makes the scrollbar sleek and thin */
+  height: 8px;
+}
+
+/* The track (background) of the scrollbar */
+::-webkit-scrollbar-track {
+  background: #1A0D05; /* Deep Earth Brown (matches your app background) */
+  border-radius: 10px;
+}
+
+/* The draggable thumb */
+::-webkit-scrollbar-thumb {
+  /* A lively, captivating gradient from Warm Amber to Bright Gold */
+  background: linear-gradient(to bottom, #D4830A, #F0A030); 
+  border-radius: 10px;
+  /* Adding a border that matches the track creates a beautiful "padded" illusion */
+  border: 2px solid #1A0D05; 
+}
+
+/* When the user hovers over the scrollbar */
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(to bottom, #F0A030, #D4830A); /* Flips the gradient for a cool effect */
+  cursor: pointer;
+}
+
+/* For Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #D4830A #1A0D05; /* Thumb color | Track color */
+}
