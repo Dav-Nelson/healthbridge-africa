@@ -1,32 +1,52 @@
 import React from 'react';
-import { HeartPulse, Globe } from 'lucide-react';
 
-export default function Header({ language, setLanguage }) {
-    // Added 'Amharic' straight into the core dropdown mapping array
-    const languages = ['English', 'Pidgin', 'Oromo', 'Twi', 'Swahili', 'Amharic'];
-    
-    return (
-        <header className='bg-white border-b border-teal-100 shadow-sm sticky top-0 z-10'>
-            <div className='max-w-4xl mx-auto px-4 py-4 flex items-center justify-between'>
-                <div className='flex items-center gap-2 text-teal-700'>
-                    <HeartPulse size={28} className='animate-pulse'/>
-                    <h1 className='text-xl md:text-2xl font-extrabold tracking-tight'>
-                        HealthBridge Africa 
-                    </h1>
-                </div>
-                <div className='flex items-center gap-2 bg-slate-50 px-3 py-2 rounded-xl border border-slate-200'>
-                    <Globe size={18} className='text-slate-500'/>
-                    <select
-                        value={language}
-                        onChange={(e) => setLanguage(e.target.value)}
-                        className='bg-transparent text-sm font-semibold text-slate-700 outline-none cursor-pointer'
-                    >
-                        {languages.map((lang) => (
-                            <option key={lang} value={lang}>{lang}</option>
-                        ))}
-                    </select>
-                </div>
+const getFlag = (lang) => {
+  const lowerLang = lang?.toLowerCase() || '';
+  // FIX: Returns null so no flag renders for English
+  if (lowerLang.includes('english')) return null; 
+  if (lowerLang.includes('pidgin')) return '🇳🇬';
+  if (lowerLang.includes('swahili')) return '🇰🇪';
+  if (lowerLang.includes('twi')) return '🇬🇭';
+  if (lowerLang.includes('oromo') || lowerLang.includes('amharic')) return '🇪🇹';
+  return '🌍'; 
+};
+
+export default function Header({ language }) {
+  const currentFlag = getFlag(language);
+
+  return (
+    <header className="flex items-center justify-between py-3 px-2 md:px-4 w-full bg-transparent">
+      
+      <div className="flex items-center gap-3">
+        <div className="relative shrink-0">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-health-accent to-health-aiBubble p-[2px]">
+            <div className="w-full h-full rounded-full bg-health-bg flex items-center justify-center overflow-hidden">
+              <span className="text-xl">👩🏾‍⚕️</span>
             </div>
-        </header>
-    );
+          </div>
+          <div className="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-health-surface bg-green-500"></div>
+        </div>
+
+        <div>
+          <h2 className="font-brand font-extrabold text-health-textPrimary text-lg leading-none tracking-wide">
+            HealthBridge <span className="text-emerald-400">Africa</span>
+          </h2>
+          <p className="text-health-textSecondary text-[11px] font-medium mt-1 uppercase tracking-wider">
+            Online · Health Companion
+          </p>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2 bg-health-chat border border-health-border px-3 py-1.5 rounded-full shadow-sm shrink-0">
+        {/* Only renders the span if there is a flag to show */}
+        {currentFlag && (
+          <span className="text-lg leading-none">{currentFlag}</span>
+        )}
+        <span className="text-health-textPrimary text-sm font-medium hidden sm:block">
+          {language || 'English'}
+        </span>
+      </div>
+      
+    </header>
+  );
 }

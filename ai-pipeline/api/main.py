@@ -80,6 +80,9 @@ def home():
         "endpoints": ["/ask", "/transcribe", "/speak"]
     }
 
+@app.head("/")
+def home_head():
+    return {}    
 
 @app.post("/ask")
 async def ask_question(data: QuestionRequest):
