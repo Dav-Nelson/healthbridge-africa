@@ -14,8 +14,6 @@ const LANGUAGE_ISO_MAP = {
   'english': 'en', 'pidgin': 'pcm', 'swahili': 'sw', 'oromo': 'om', 'twi': 'tw', 'amharic': 'am'
 };
 
-// --- TRANSLATION DICTIONARY ---
-// Removed the hardcoded ack/q strings since the AI handles triage dynamically now!
 const TRANSLATIONS = {
   en: {
     welcome1: "Welcome to HealthBridge Africa 🌍\nI'm your personal health companion, here to listen and help — in your language, at your pace.\nYou are safe here. Everything you share stays between us. 💛",
@@ -106,7 +104,6 @@ export default function App() {
   const langCode = getCleanLanguageCode();
   const t = TRANSLATIONS[langCode] || TRANSLATIONS['en'];
 
-  // Initial Welcome Flow
   useEffect(() => {
     if (!showOnboarding && !hasWelcomedRef.current) {
       hasWelcomedRef.current = true;
@@ -116,22 +113,22 @@ export default function App() {
         setIsTyping(true);
         await new Promise(r => setTimeout(r, 2000));
         setMessages([{ id: Date.now(), sender: 'bot', text: t.welcome1 }]);
-        
         await new Promise(r => setTimeout(r, 1500));
-        setMessages(prev => [...prev, { id: Date.now()+1, sender: 'bot', text: t.welcome2 }]);
+        setMessages(prev => [...prev, { id: Date.now() + 1, sender: 'bot', text: t.welcome2 }]);
         setIsTyping(false);
       };
       runWelcome();
     }
   }, [showOnboarding, language, t.welcome1, t.welcome2]);
 
-  // Handle changing languages from the Settings Panel
   const handleLanguageChange = (newLang) => {
     setLanguage(newLang);
-    setMessages([]); // Clear chat history visually
-    localStorage.setItem('chat_session_id', crypto.randomUUID()); // Reset backend memory
-    
-    // Immediately greet in the new language
+    setMessages([]);
+
+    // Generate and persist a new session ID so backend memory resets cleanly
+    const newSessionId = crypto.randomUUID();
+    localStorage.setItem('chat_session_id', newSessionId);
+
     const targetLangCode = LANGUAGE_ISO_MAP[newLang.toLowerCase()] || 'en';
     const newT = TRANSLATIONS[targetLangCode] || TRANSLATIONS['en'];
 
@@ -139,7 +136,7 @@ export default function App() {
     setTimeout(() => {
       setMessages([{ id: Date.now(), sender: 'bot', text: newT.welcome1 }]);
       setTimeout(() => {
-        setMessages(prev => [...prev, { id: Date.now()+1, sender: 'bot', text: newT.welcome2 }]);
+        setMessages(prev => [...prev, { id: Date.now() + 1, sender: 'bot', text: newT.welcome2 }]);
         setIsTyping(false);
       }, 1500);
     }, 1000);
@@ -155,41 +152,30 @@ export default function App() {
     try {
       const targetCode = getCleanLanguageCode();
       const sessionId = getOrCreateSessionId();
-      let finalMessageToSend = textToProcess;
-
-      // SMART AI TRIAGE: Inject instructions ONLY on the first message so the AI knows how to route it
-      const isFirstUserMessage = !messages.some(m => m.sender === 'user');
-
-      if (isFirstUserMessage) {
-        finalMessageToSend = `[SYSTEM INSTRUCTIONS - STRICTLY ADHERE TO THESE]
-You are HealthBridge Africa — a warm, culturally grounded AI health companion built for African communities.
-Respond natively in ${language.name || language}.
-
-Analyze the user's opening message: "${textToProcess}"
-
-BEHAVIOUR RULES:
-1. GENERAL QUESTION: If the user is asking a general health fact or question (e.g., "about cancer", "what is malaria"), simply answer the question clearly, warmly, and accurately. Do NOT ask triage questions.
-2. SYMPTOM/COMPLAINT: If the user is describing a personal symptom or feeling sick (e.g., "my head hurts", "I am coughing"), express brief empathy, then act as a triage nurse and ask ONE follow-up question (like onset or severity) to understand better.
-3. When you use any medical term, immediately explain it in plain language using a simple, relatable African analogy.
-4. Never give a definitive diagnosis.
-5. Always close medical guidance with: "⚕️ Remember: I'm here to support, not replace, a certified doctor."
-[END OF SYSTEM INSTRUCTIONS]
-
-User's message: "${textToProcess}"`;
-      }
 
       const response = await fetch(`${API_BASE_URL}/api/voice/text-chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: finalMessageToSend, language: targetCode, sessionId: sessionId }),
+        body: JSON.stringify({
+          message: textToProcess,
+          language: targetCode,
+          sessionId: sessionId
+        }),
       });
 
       if (!response.ok) throw new Error('API response failed');
       const data = await response.json();
 
-      setMessages(prev => [...prev, { sender: 'bot', text: data.response, language: targetCode }]);
+      setMessages(prev => [...prev, {
+        sender: 'bot',
+        text: data.response,
+        language: targetCode
+      }]);
     } catch (error) {
-      setMessages(prev => [...prev, { sender: 'bot', text: "Sorry, I am having trouble connecting to the server right now." }]);
+      setMessages(prev => [...prev, {
+        sender: 'bot',
+        text: "Sorry, I am having trouble connecting to the server right now."
+      }]);
     } finally {
       setIsLoading(false);
     }
@@ -206,7 +192,9 @@ User's message: "${textToProcess}"`;
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
-      mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunksRef.current.push(e.data); };
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
       mediaRecorder.onstop = async () => {
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         stream.getTracks().forEach(track => track.stop());
@@ -214,7 +202,9 @@ User's message: "${textToProcess}"`;
       };
       mediaRecorder.start();
       setIsRecording(true);
-    } catch (error) { alert("Unable to access the microphone. Please allow permissions."); }
+    } catch (error) {
+      alert("Unable to access the microphone. Please allow permissions.");
+    }
   };
 
   const stopRecording = () => {
@@ -234,23 +224,28 @@ User's message: "${textToProcess}"`;
     formData.append('sessionId', sessionId);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/voice/chat`, { method: 'POST', body: formData });
+      const response = await fetch(`${API_BASE_URL}/api/voice/chat`, {
+        method: 'POST',
+        body: formData
+      });
       if (!response.ok) throw new Error('Voice chat failed');
       const data = await response.json();
-      
-      const isFirstUserMessage = !messages.some(m => m.sender === 'user');
 
-      // Pass transcribed audio to the text pipeline so the Smart Triage instructions get applied!
-      if (isFirstUserMessage && data.transcribed) {
-        setIsLoading(false); 
-        handleSendMessage(data.transcribed);
-        return;
+      if (data.transcribed) {
+        setMessages(prev => [...prev, { sender: 'user', text: data.transcribed }]);
       }
-
-      if (data.transcribed) setMessages(prev => [...prev, { sender: 'user', text: data.transcribed }]);
-      if (data.response) setMessages(prev => [...prev, { sender: 'bot', text: data.response, language: targetCode }]);
+      if (data.response) {
+        setMessages(prev => [...prev, {
+          sender: 'bot',
+          text: data.response,
+          language: targetCode
+        }]);
+      }
     } catch (error) {
-      setMessages(prev => [...prev, { sender: 'bot', text: "Sorry, I couldn't process your voice message." }]);
+      setMessages(prev => [...prev, {
+        sender: 'bot',
+        text: "Sorry, I couldn't process your voice message."
+      }]);
     } finally {
       setIsLoading(false);
     }
@@ -270,8 +265,14 @@ User's message: "${textToProcess}"`;
 
       {showHelp && <HelpModal onClose={() => setShowHelp(false)} language={currentLangName} />}
 
-      <div className={`fixed inset-0 z-50 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${isMobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'} md:hidden`} onClick={() => setIsMobileMenuOpen(false)}>
-        <aside className={`w-72 bg-health-surface border-r border-health-border h-screen p-6 text-health-textSecondary flex flex-col justify-between transform transition-transform duration-300 ease-out ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`} onClick={(e) => e.stopPropagation()}>
+      <div
+        className={`fixed inset-0 z-50 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${isMobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'} md:hidden`}
+        onClick={() => setIsMobileMenuOpen(false)}
+      >
+        <aside
+          className={`w-72 bg-health-surface border-r border-health-border h-screen p-6 text-health-textSecondary flex flex-col justify-between transform transition-transform duration-300 ease-out ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}
+          onClick={(e) => e.stopPropagation()}
+        >
           <div className="flex flex-col gap-6 w-full">
             <div className="flex items-center justify-between">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-health-accent to-health-accentLight flex items-center justify-center text-health-bg font-brand font-bold text-lg">
@@ -283,19 +284,31 @@ User's message: "${textToProcess}"`;
             </div>
             <hr className="border-health-border" />
             <nav className="flex flex-col gap-2">
-              <button onClick={() => { setActiveTab('consultation'); setIsMobileMenuOpen(false); }} className={`flex items-center gap-3 w-full p-3.5 rounded-xl font-medium transition ${activeTab === 'consultation' ? 'bg-health-chat text-health-accentLight' : 'hover:bg-health-chat hover:text-health-textPrimary'}`}>
+              <button
+                onClick={() => { setActiveTab('consultation'); setIsMobileMenuOpen(false); }}
+                className={`flex items-center gap-3 w-full p-3.5 rounded-xl font-medium transition ${activeTab === 'consultation' ? 'bg-health-chat text-health-accentLight' : 'hover:bg-health-chat hover:text-health-textPrimary'}`}
+              >
                 <MessageSquare size={20} /><span>Consultation Room</span>
               </button>
-              <button onClick={() => { setActiveTab('history'); setIsMobileMenuOpen(false); }} className={`flex items-center gap-3 w-full p-3.5 rounded-xl font-medium transition ${activeTab === 'history' ? 'bg-health-chat text-health-accentLight' : 'hover:bg-health-chat hover:text-health-textPrimary'}`}>
+              <button
+                onClick={() => { setActiveTab('history'); setIsMobileMenuOpen(false); }}
+                className={`flex items-center gap-3 w-full p-3.5 rounded-xl font-medium transition ${activeTab === 'history' ? 'bg-health-chat text-health-accentLight' : 'hover:bg-health-chat hover:text-health-textPrimary'}`}
+              >
                 <History size={20} /><span>Medical History</span>
               </button>
             </nav>
           </div>
           <div className="flex flex-col gap-2 w-full">
-            <button onClick={() => { setShowHelp(true); setIsMobileMenuOpen(false); }} className="flex items-center gap-3 w-full p-3.5 rounded-xl font-medium hover:bg-health-chat hover:text-health-textPrimary transition">
+            <button
+              onClick={() => { setShowHelp(true); setIsMobileMenuOpen(false); }}
+              className="flex items-center gap-3 w-full p-3.5 rounded-xl font-medium hover:bg-health-chat hover:text-health-textPrimary transition"
+            >
               <HelpCircle size={20} /><span>Help & FAQ</span>
             </button>
-            <button onClick={() => { setActiveTab('settings'); setIsMobileMenuOpen(false); }} className={`flex items-center gap-3 w-full p-3.5 rounded-xl font-medium transition ${activeTab === 'settings' ? 'bg-health-chat text-health-accentLight' : 'hover:bg-health-chat hover:text-health-textPrimary'}`}>
+            <button
+              onClick={() => { setActiveTab('settings'); setIsMobileMenuOpen(false); }}
+              className={`flex items-center gap-3 w-full p-3.5 rounded-xl font-medium transition ${activeTab === 'settings' ? 'bg-health-chat text-health-accentLight' : 'hover:bg-health-chat hover:text-health-textPrimary'}`}
+            >
               <Settings size={20} /><span>System Settings</span>
             </button>
           </div>
@@ -308,18 +321,30 @@ User's message: "${textToProcess}"`;
             HB
           </div>
           <hr className="w-8 border-health-border" />
-          <button onClick={() => setActiveTab('consultation')} className={`p-3 rounded-xl transition relative group ${activeTab === 'consultation' ? 'bg-health-chat text-health-accentLight shadow-inner' : 'hover:text-health-textPrimary'}`}>
+          <button
+            onClick={() => setActiveTab('consultation')}
+            className={`p-3 rounded-xl transition relative group ${activeTab === 'consultation' ? 'bg-health-chat text-health-accentLight shadow-inner' : 'hover:text-health-textPrimary'}`}
+          >
             <MessageSquare size={22} />
           </button>
-          <button onClick={() => setActiveTab('history')} className={`p-3 rounded-xl transition relative group ${activeTab === 'history' ? 'bg-health-chat text-health-accentLight shadow-inner' : 'hover:text-health-textPrimary'}`}>
+          <button
+            onClick={() => setActiveTab('history')}
+            className={`p-3 rounded-xl transition relative group ${activeTab === 'history' ? 'bg-health-chat text-health-accentLight shadow-inner' : 'hover:text-health-textPrimary'}`}
+          >
             <History size={22} />
           </button>
         </div>
         <div className="flex flex-col items-center gap-4 w-full">
-          <button onClick={() => setShowHelp(true)} className="p-3 hover:bg-health-chat hover:text-health-textPrimary rounded-xl transition relative group">
+          <button
+            onClick={() => setShowHelp(true)}
+            className="p-3 hover:bg-health-chat hover:text-health-textPrimary rounded-xl transition relative group"
+          >
             <HelpCircle size={22} />
           </button>
-          <button onClick={() => setActiveTab('settings')} className={`p-3 rounded-xl transition relative group ${activeTab === 'settings' ? 'bg-health-chat text-health-accentLight shadow-inner' : 'hover:text-health-textPrimary'}`}>
+          <button
+            onClick={() => setActiveTab('settings')}
+            className={`p-3 rounded-xl transition relative group ${activeTab === 'settings' ? 'bg-health-chat text-health-accentLight shadow-inner' : 'hover:text-health-textPrimary'}`}
+          >
             <Settings size={22} />
             <span className={`absolute left-0 w-1 h-4 bg-health-accent rounded-r-full top-[18px] transition-transform ${activeTab === 'settings' ? 'scale-100' : 'scale-0'}`}></span>
           </button>
@@ -335,7 +360,10 @@ User's message: "${textToProcess}"`;
         </div>
 
         <div className="flex items-center bg-health-surface border-b border-health-border px-4 md:px-0 z-20">
-          <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 mr-1 text-health-textSecondary hover:bg-health-chat rounded-lg block md:hidden transition">
+          <button
+            onClick={() => setIsMobileMenuOpen(true)}
+            className="p-2 mr-1 text-health-textSecondary hover:bg-health-chat rounded-lg block md:hidden transition"
+          >
             <Menu size={24} />
           </button>
           <div className="flex-1">
@@ -347,10 +375,10 @@ User's message: "${textToProcess}"`;
           {activeTab === 'consultation' && (
             <div className="flex flex-col h-full">
               <div className="flex-1 overflow-y-auto px-4 md:px-6 py-4">
-                <ChatDisplay 
-                  messages={messages} 
-                  isTyping={isTyping} 
-                  isLoading={isLoading} 
+                <ChatDisplay
+                  messages={messages}
+                  isTyping={isTyping}
+                  isLoading={isLoading}
                   language={currentLangName}
                   secureText={t.secure}
                 />
@@ -359,8 +387,12 @@ User's message: "${textToProcess}"`;
               <div className="bg-health-surface border-t border-health-border p-3 md:p-4 flex-shrink-0 z-20">
                 <div className="max-w-4xl mx-auto">
                   <form onSubmit={handleTextSubmit} className="flex items-center gap-2 md:gap-3">
-                    <button type="button" onClick={isRecording ? stopRecording : startRecording} className={`p-3.5 md:p-4 rounded-full flex-shrink-0 transition-all ${isRecording ? 'bg-red-900/50 text-red-500 animate-pulse border border-red-500/50' : 'bg-health-bg border border-health-border text-health-textSecondary hover:text-health-accent'}`}>
-                      {isRecording ? <Square size={18} fill="currentColor"/> : <Mic size={18} />}
+                    <button
+                      type="button"
+                      onClick={isRecording ? stopRecording : startRecording}
+                      className={`p-3.5 md:p-4 rounded-full flex-shrink-0 transition-all ${isRecording ? 'bg-red-900/50 text-red-500 animate-pulse border border-red-500/50' : 'bg-health-bg border border-health-border text-health-textSecondary hover:text-health-accent'}`}
+                    >
+                      {isRecording ? <Square size={18} fill="currentColor" /> : <Mic size={18} />}
                     </button>
 
                     <div className="flex-1 bg-health-bg border border-health-border focus-within:border-health-accent rounded-3xl flex items-center px-4 py-2">
@@ -374,7 +406,11 @@ User's message: "${textToProcess}"`;
                       />
                     </div>
 
-                    <button type="submit" disabled={!inputValue.trim() || isLoading || isRecording || isTyping} className={`p-3.5 md:p-4 rounded-full flex-shrink-0 transition-all ${inputValue.trim() && !isTyping && !isLoading ? 'bg-gradient-to-r from-health-accent to-health-accentLight text-health-bg shadow-[0_4px_15px_rgba(212,131,10,0.3)]' : 'bg-health-bg border border-health-border text-health-textSecondary cursor-not-allowed'}`}>
+                    <button
+                      type="submit"
+                      disabled={!inputValue.trim() || isLoading || isRecording || isTyping}
+                      className={`p-3.5 md:p-4 rounded-full flex-shrink-0 transition-all ${inputValue.trim() && !isTyping && !isLoading ? 'bg-gradient-to-r from-health-accent to-health-accentLight text-health-bg shadow-[0_4px_15px_rgba(212,131,10,0.3)]' : 'bg-health-bg border border-health-border text-health-textSecondary cursor-not-allowed'}`}
+                    >
                       <Send size={18} />
                     </button>
                   </form>
@@ -386,7 +422,9 @@ User's message: "${textToProcess}"`;
             </div>
           )}
           {activeTab === 'history' && <HistoryPanel />}
-          {activeTab === 'settings' && <SettingsPanel language={currentLangName} setLanguage={handleLanguageChange} />}
+          {activeTab === 'settings' && (
+            <SettingsPanel language={currentLangName} setLanguage={handleLanguageChange} />
+          )}
         </main>
       </div>
     </div>
