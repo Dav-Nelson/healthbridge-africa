@@ -283,8 +283,9 @@ def ask_rag(question: str, language: str = "English", history: list = []) -> dic
             ),
             config=types.GenerateContentConfig(
                 system_instruction=system_instruction,
-                max_output_tokens=1500,
+                max_output_tokens=2000,
                 temperature=0.3,
+                thinking_config=types.ThinkingConfig(thinking_budget=0),
             )
         )
         answer = gemini_response.text.strip()
