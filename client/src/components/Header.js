@@ -1,22 +1,23 @@
 import React from 'react';
 
+const SUPPORTED_LANGUAGES = ['English', 'Pidgin', 'Swahili', 'Twi', 'Oromo', 'Amharic'];
+
 const getFlag = (lang) => {
   const lowerLang = lang?.toLowerCase() || '';
-  // FIX: Returns null so no flag renders for English
-  if (lowerLang.includes('english')) return null; 
+  if (lowerLang.includes('english')) return null;
   if (lowerLang.includes('pidgin')) return '🇳🇬';
   if (lowerLang.includes('swahili')) return '🇰🇪';
   if (lowerLang.includes('twi')) return '🇬🇭';
   if (lowerLang.includes('oromo') || lowerLang.includes('amharic')) return '🇪🇹';
-  return '🌍'; 
+  return '🌍';
 };
 
-export default function Header({ language }) {
+export default function Header({ language, onLanguageChange }) {
   const currentFlag = getFlag(language);
 
   return (
     <header className="flex items-center justify-between py-3 px-2 md:px-4 w-full bg-transparent">
-      
+
       <div className="flex items-center gap-3">
         <div className="relative shrink-0">
           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-health-accent to-health-aiBubble p-[2px]">
@@ -38,15 +39,22 @@ export default function Header({ language }) {
       </div>
 
       <div className="flex items-center gap-2 bg-health-chat border border-health-border px-3 py-1.5 rounded-full shadow-sm shrink-0">
-        {/* Only renders the span if there is a flag to show */}
         {currentFlag && (
           <span className="text-lg leading-none">{currentFlag}</span>
         )}
-        <span className="text-health-textPrimary text-sm font-medium hidden sm:block">
-          {language || 'English'}
-        </span>
+        <select
+          value={language || 'English'}
+          onChange={(e) => onLanguageChange && onLanguageChange(e.target.value)}
+          className="bg-transparent text-health-textPrimary text-sm font-medium focus:outline-none cursor-pointer appearance-none pr-1"
+        >
+          {SUPPORTED_LANGUAGES.map((lang) => (
+            <option key={lang} value={lang} className="bg-health-surface text-health-textPrimary">
+              {lang}
+            </option>
+          ))}
+        </select>
       </div>
-      
+
     </header>
   );
 }

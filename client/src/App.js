@@ -16,57 +16,57 @@ const LANGUAGE_ISO_MAP = {
 
 const TRANSLATIONS = {
   en: {
-    welcome1: "Welcome to HealthBridge Africa 🌍\nI'm your personal health companion, here to listen and help — in your language, at your pace.\nYou are safe here. Everything you share stays between us. 💛",
-    welcome2: "Please tell me — what is bothering you today? Or what health question can I answer for you?",
+    welcome1: "Welcome to HealthBridge Africa. I am your personal health companion, here to listen and help in your language, at your pace. You are safe here. Everything you share stays between us.",
+    welcome2: "Please tell me what is bothering you today, or what health question I can answer for you.",
     placeholder: "Type your health question or symptom...",
     recording: "Listening...",
     wait: "Wait for response...",
-    disclaimer: "⚕️ This system is not a substitute for professional medical advice. Always consult a certified doctor.",
+    disclaimer: "This system is not a substitute for professional medical advice. Always consult a certified doctor.",
     secure: "Secure Clinical Consultation"
   },
   pcm: {
-    welcome1: "Welcome to HealthBridge Africa 🌍\nI be your personal health companion. I dey here to listen and help you for your own language.\nYou dey safe here. Everything wey you tell me na secret. 💛",
-    welcome2: "Abeg tell me — wetin dey do you today? Or which health question you want ask?",
+    welcome1: "Welcome to HealthBridge Africa. I be your personal health companion. I dey here to listen and help you for your own language. You dey safe here. Everything wey you tell me na secret.",
+    welcome2: "Abeg tell me wetin dey do you today, or which health question you want ask.",
     placeholder: "Type wetin dey do you...",
     recording: "I dey listen...",
     wait: "Abeg wait small...",
-    disclaimer: "⚕️ This system no be doctor substitute. Make you always check certified doctor.",
+    disclaimer: "This system no be doctor substitute. Make you always check certified doctor.",
     secure: "Safe Health Tok"
   },
   sw: {
-    welcome1: "Karibu HealthBridge Africa 🌍\nMimi ni rafiki yako wa afya, hapa kusikiliza na kusaidia — kwa lugha yako.\nUko salama hapa. Kila kitu unachoshiriki kinabaki kati yetu. 💛",
-    welcome2: "Tafadhali niambie — nini kinakusumbua leo? Au ninaweza kujibu swali gani la afya?",
+    welcome1: "Karibu HealthBridge Africa. Mimi ni rafiki yako wa afya, hapa kusikiliza na kusaidia kwa lugha yako. Uko salama hapa. Kila kitu unachoshiriki kinabaki kati yetu.",
+    welcome2: "Tafadhali niambie nini kinakusumbua leo, au ninaweza kujibu swali gani la afya.",
     placeholder: "Andika swali lako la afya au dalili...",
     recording: "Inasikiliza...",
     wait: "Subiri majibu...",
-    disclaimer: "⚕️ Mfumo huu sio mbadala wa ushauri wa kitaalamu wa matibabu. Daima shauriana na daktari.",
+    disclaimer: "Mfumo huu sio mbadala wa ushauri wa kitaalamu wa matibabu. Daima shauriana na daktari.",
     secure: "Ushauri Salama wa Kliniki"
   },
   tw: {
-    welcome1: "Akwaaba kɔ HealthBridge Africa 🌍\nMe yɛ wo apɔwmuden adamfo, me wɔ ha sɛ mɛtie wo na m'aboa wo — wɔ wo kasa mu.\nWo ho dwo wo wɔ ha. Biribiara a woka kyerɛ me no yɛ kokoam asɛm. 💛",
-    welcome2: "Mesrɛ wo ka kyerɛ me — dɛn na ɛhaw wo nnɛ? Anaa apɔwmuden asɛm bɛn na wobisa?",
+    welcome1: "Akwaaba kɔ HealthBridge Africa. Me yɛ wo apɔwmuden adamfo, me wɔ ha sɛ mɛtie wo na m'aboa wo wɔ wo kasa mu. Wo ho dwo wo wɔ ha. Biribiara a woka kyerɛ me no yɛ kokoam asɛm.",
+    welcome2: "Mesrɛ wo ka kyerɛ me dɛn na ɛhaw wo nnɛ, anaa apɔwmuden asɛm bɛn na wobisa.",
     placeholder: "Kyerɛw wo apɔwmuden asɛm...",
     recording: "Mretie...",
     wait: "Twɛn mmuae...",
-    disclaimer: "⚕️ Eyi nsi aduruyɛ ho afutuo ananmu. Bere biara kɔbɔ oduruyɛfoɔ a ɔwɔ tumi krataa kɔkɔ.",
+    disclaimer: "Eyi nsi aduruyɛ ho afutuo ananmu. Bere biara kɔbɔ oduruyɛfoɔ a ɔwɔ tumi krataa kɔkɔ.",
     secure: "Ayaresa Nkitahodie a Ɛyɛ Ahobammɔ"
   },
   om: {
-    welcome1: "Baga nagaan gara HealthBridge Africa dhuftan 🌍\nAni hiriyyaa fayyaa keeti, dhaggeeffachuu fi si gargaaruuf asan jira.\nAsitti nageenyi kee eegamaadha. Wanti ati natti himtu hundi icciitidha. 💛",
-    welcome2: "Mee natti himi — har'a maaltu si rakkisaa jira? Ykn gaaffii fayyaa akkamii qabda?",
+    welcome1: "Baga nagaan gara HealthBridge Africa dhuftan. Ani hiriyyaa fayyaa keeti, dhaggeeffachuu fi si gargaaruuf asan jira. Asitti nageenyi kee eegamaadha. Wanti ati natti himtu hundi icciitidha.",
+    welcome2: "Mee natti himi har'a maaltu si rakkisaa jira, ykn gaaffii fayyaa akkamii qabda.",
     placeholder: "Gaaffii fayyaa kee barreessi...",
     recording: "Dhaggeeffachaa jira...",
     wait: "Deebii eegi...",
-    disclaimer: "⚕️ Sirni kun gorsa yaala ogeessaa bakka hin bu'u. Yeroo mara ogeessa fayyaa mariisisi.",
+    disclaimer: "Sirni kun gorsa yaala ogeessaa bakka hin bu'u. Yeroo mara ogeessa fayyaa mariisisi.",
     secure: "Marii Kiliinikaa Icciitii"
   },
   am: {
-    welcome1: "ወደ HealthBridge Africa በደህና መጡ 🌍\nእኔ የእርስዎ የግል ጤና ጓደኛ ነኝ፣ እርስዎን ለማዳመጥ እና ለመርዳት እዚህ ነኝ።\nእዚህ ደህንነትዎ የተጠበቀ ነው። የሚያጋሩት ማንኛውም ነገር ሚስጥር ነው። 💛",
-    welcome2: "እባክዎ ይንገሩኝ — ዛሬ ምን እየረበሸዎት ነው? ወይም ምን የጤና ጥያቄ መመለስ እችላለሁ?",
+    welcome1: "ወደ HealthBridge Africa በደህና መጡ። እኔ የእርስዎ የግል ጤና ጓደኛ ነኝ፣ እርስዎን ለማዳመጥ እና ለመርዳት እዚህ ነኝ። እዚህ ደህንነትዎ የተጠበቀ ነው። የሚያጋሩት ማንኛውም ነገር ሚስጥር ነው።",
+    welcome2: "እባክዎ ይንገሩኝ ዛሬ ምን እየረበሸዎት ነው፣ ወይም ምን የጤና ጥያቄ መመለስ እችላለሁ።",
     placeholder: "የጤና ጥያቄዎን እዚህ ይጻፉ...",
     recording: "እያዳመጥኩ ነው...",
     wait: "ምላሽ ይጠብቁ...",
-    disclaimer: "⚕️ ይህ ዘዴ የባለሙያ የህክምና ምክርን አይተካም። ሁልጊዜ የተረጋገጠ ዶክተር ያማክሩ።",
+    disclaimer: "ይህ ዘዴ የባለሙያ የህክምና ምክርን አይተካም። ሁልጊዜ የተረጋገጠ ዶክተር ያማክሩ።",
     secure: "ደህንነቱ የተጠበቀ የክሊኒክ ምክክር"
   }
 };
@@ -124,8 +124,6 @@ export default function App() {
   const handleLanguageChange = (newLang) => {
     setLanguage(newLang);
     setMessages([]);
-
-    // Generate and persist a new session ID so backend memory resets cleanly
     const newSessionId = crypto.randomUUID();
     localStorage.setItem('chat_session_id', newSessionId);
 
@@ -367,7 +365,10 @@ export default function App() {
             <Menu size={24} />
           </button>
           <div className="flex-1">
-            <Header language={currentLangName} />
+            <Header
+              language={currentLangName}
+              onLanguageChange={handleLanguageChange}
+            />
           </div>
         </div>
 

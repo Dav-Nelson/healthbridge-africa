@@ -204,7 +204,7 @@ def ask_rag(question: str, language: str = "English", history: list = []) -> dic
     conn.close()
 
     # Step 3: Filter by minimum relevance score
-    if not rows or rows[0][2] < 0.40:
+    if not rows or rows[0][2] < 0.35:
         return {
             "answer": FALLBACK_MESSAGES.get(response_language, FALLBACK_MESSAGES["English"]),
             "score": 0.0,
@@ -283,7 +283,7 @@ def ask_rag(question: str, language: str = "English", history: list = []) -> dic
             ),
             config=types.GenerateContentConfig(
                 system_instruction=system_instruction,
-                max_output_tokens=800,
+                max_output_tokens=1200,
                 temperature=0.3,
             )
         )
