@@ -45,10 +45,11 @@ export default function Header({ language, onLanguageChange }) {
         <select
           value={language || 'English'}
           onChange={(e) => onLanguageChange && onLanguageChange(e.target.value)}
-          className="bg-transparent text-health-textPrimary text-sm font-medium focus:outline-none cursor-pointer appearance-none pr-1"
+          className="bg-transparent text-health-textPrimary text-sm font-medium focus:outline-none cursor-pointer"
+          style={{ appearance: 'none', WebkitAppearance: 'none' }}
         >
           {SUPPORTED_LANGUAGES.map((lang) => (
-            <option key={lang} value={lang} className="bg-health-surface text-health-textPrimary">
+            <option key={lang} value={lang}>
               {lang}
             </option>
           ))}
