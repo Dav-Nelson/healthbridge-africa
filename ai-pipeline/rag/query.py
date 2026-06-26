@@ -1,7 +1,6 @@
 """
 rag/query.py - HealthBridge Africa RAG Query Engine
-Uses Gemini 2.5 Flash for generation + Gemini embeddings for retrieval
-Groq Llama-3.3-70b kept for language detection and translation only
+Uses Gemini embeddings for retrieval + Groq Llama-3.3-70b for generation
 """
 import os
 import re
@@ -13,25 +12,24 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Gemini client — embeddings + generation
+# Gemini client — embeddings only
 gemini_client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
-# Groq client — language detection + translation only
+# Groq client — language detection, translation, AND generation
 groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+
+SUPPORTED_LANGUAGES = {
+    "English", "Nigerian Pidgin", "Swahili", "Oromo", "Twi", "Amharic"
+}
 
 LANGUAGE_ENFORCEMENT = {
     "English": "Respond entirely in English.",
     "Nigerian Pidgin": "You must respond ENTIRELY in Nigerian Pidgin English — every sentence, no English-only sentences mixed in, no switching back to standard English. Use natural Pidgin phrasing throughout (e.g. 'Your body dey hot' not 'Your body is hot').",
-    "Swahili": "Lazima ujibu KWA KISWAHILI PEKEE — sentensi zote kwa Kiswahili, bila kuchanganya na Kiingereza. (You must respond ENTIRELY in Swahili — every sentence, no mixing in English.)",
-    "Oromo": "Deebii kee guutummaatti AFAAN OROMOOTIIN kenni — sentensii hunda Afaan Oromootiin, Ingiliffa wajjin walitti hin makin. (You must respond ENTIRELY in Oromo — every sentence, no mixing in English.)",
+    "Swahili": "Lazima ujibu KWA KISWAHILI PEKEE — sentensi zote kwa Kiswahili, bila kuchanganya na Kiingereza.",
+    "Oromo": "Deebii kee guutummaatti AFAAN OROMOOTIIN kenni — sentensii hunda Afaan Oromootiin, Ingiliffa wajjin walitti hin makin.",
     "Twi": "You must respond ENTIRELY in Twi — every sentence, no English-only sentences mixed in. If a medical term has no natural Twi equivalent, keep that single term in English but write the surrounding explanation in Twi.",
-    "Amharic": "መልስህን ሙሉ በሙሉ በአማርኛ ስጥ — እያንዳንዱ ዓረፍተ ነገር በአማርኛ መሆን አለበት፣ ከእንግሊዝኛ ጋር አትቀላቅል። (You must respond ENTIRELY in Amharic — every sentence, no mixing in English.)"
+    "Amharic": "መልስህን ሙሉ በሙሉ በአማርኛ ስጥ — እያንዳንዱ ዓረፍተ ነገር በአማርኛ መሆን አለበት፣ ከእንግሊዝኛ ጋር አትቀላቅል።"
 }
 
-# Only run verification pass for languages where the model is reliable.
-# Twi, Amharic, and Oromo are excluded — too high a risk of degenerate loops.
-RELIABLE_FOR_TRANSLATION_PASS = {"Nigerian Pidgin", "Swahili"}
-
-# Fallback messages in all supported languages
 FALLBACK_MESSAGES = {
     "English": "I don't have enough reliable information to answer that confidently. Please consult a qualified healthcare provider or visit your nearest health facility.",
     "Nigerian Pidgin": "I no get enough correct information to answer dat question well well. Abeg go see correct doctor or visit di health center near you.",
@@ -56,11 +54,10 @@ def strip_markdown(text: str) -> str:
 
 
 def is_degenerate(text: str) -> bool:
-    """Detect repetitive/looping model output that should never reach the user."""
+    """Detect repetitive or looping model output."""
     if not text or len(text) < 10:
         return False
 
-    # Character-level check: catches glued fragments like "nkyɛnkyɛnkyɛn..."
     for frag_len in (3, 4, 5, 6):
         if len(text) < frag_len * 8:
             continue
@@ -75,12 +72,10 @@ def is_degenerate(text: str) -> bool:
     if len(words) < 8:
         return False
 
-    # Word-level: small unique word set dominating response
     unique_words = set(words)
     if len(unique_words) / len(words) < 0.25:
         return True
 
-    # Phrase-level: same short phrase repeating many times
     for phrase_len in (3, 4, 5):
         if len(words) < phrase_len * 4:
             continue
@@ -90,14 +85,11 @@ def is_degenerate(text: str) -> bool:
             if most_common_count >= 5:
                 return True
 
-    # Sentence-level: catches Amharic/Oromo compound word loops
     sentences = [s.strip() for s in re.split(r'[.?።]', text) if s.strip()]
     if len(sentences) > 2:
-        sentence_unique_ratio = len(set(sentences)) / len(sentences)
-        if sentence_unique_ratio < 0.65:
+        if len(set(sentences)) / len(sentences) < 0.65:
             return True
 
-    # Extremely long single token with no spaces = glued repetition blob
     longest_word = max((len(w) for w in words), default=0)
     if longest_word > 80:
         return True
@@ -171,7 +163,7 @@ def get_query_embedding(text: str) -> list:
 
 
 def ask_rag(question: str, language: str = "English", history: list = []) -> dict:
-    """Full RAG pipeline: detect language → embed → retrieve → generate with Gemini 2.5 Flash."""
+    """Full RAG pipeline: detect language → embed → retrieve → generate with Groq Llama-3.3-70b."""
 
     # Step 1: Detect language and translate to English for search
     detection = detect_language_and_translate(question)
@@ -179,9 +171,8 @@ def ask_rag(question: str, language: str = "English", history: list = []) -> dic
     language_name = detection["language_name"]
     search_query = detection["english"]
 
-    # Use the language passed from the frontend as the authoritative response language
-    # (detection is used for search only — the user's UI selection determines response language)
-    response_language = language if language != "English" or language_name == "English" else language_name
+    # Frontend language selection is authoritative for response language
+    response_language = language if language in SUPPORTED_LANGUAGES else language_name
 
     print(f"[Original]  {question}")
     print(f"[Detected]  {language_name} ({language_code})")
@@ -215,7 +206,7 @@ def ask_rag(question: str, language: str = "English", history: list = []) -> dic
     sources = list(set([row[1] for row in rows]))
     best_score = float(rows[0][2])
 
-    # Step 4: Build conversation history string
+    # Step 4: Build conversation history
     history_text = ""
     if history:
         history_lines = []
@@ -237,7 +228,7 @@ def ask_rag(question: str, language: str = "English", history: list = []) -> dic
         f"The knowledge base context is in English. Translate and explain everything in {response_language}.\n"
         f"Do NOT respond in English unless the selected language is English.\n"
         f"Never switch languages mid-response.\n"
-        f"Never repeat the same sentence twice — if you catch yourself repeating, summarize instead.\n"
+        f"Never repeat the same sentence twice.\n"
         f"=================================================\n\n"
 
         f"=== FORMATTING ===\n"
@@ -270,72 +261,46 @@ def ask_rag(question: str, language: str = "English", history: list = []) -> dic
 
         f"=== FINAL REMINDER ===\n"
         f"{language_rule}\n"
-        f"No markdown. No asterisks. Plain conversational text only."
+        f"No markdown. No asterisks. Plain conversational text only.\n"
+        f"Give a complete response — do not cut off mid-sentence."
     )
 
-    # Step 6: Generate with Gemini 2.5 Flash
+    # Step 6: Generate with Groq Llama-3.3-70b-versatile
     try:
-        gemini_response = gemini_client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=(
-                f"{question}\n\n"
-                f"(English meaning: {search_query}. Respond entirely in {response_language}.)"
-            ),
-            config=types.GenerateContentConfig(
-                system_instruction=system_instruction,
-                max_output_tokens=2000,
-                temperature=0.3,
-                thinking_config=types.ThinkingConfig(thinking_budget=0),
-            )
+        response = groq_client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {"role": "system", "content": system_instruction},
+                {"role": "user", "content": (
+                    f"{question}\n\n"
+                    f"(English meaning: {search_query}. Respond entirely in {response_language}.)"
+                )}
+            ],
+            temperature=0.3,
+            max_tokens=1024
         )
-        answer = gemini_response.text.strip()
+        answer = response.choices[0].message.content.strip()
     except Exception as e:
-        print(f"[Gemini generation error] {e}")
+        print(f"[Groq generation error] {e}")
         return {
             "answer": FALLBACK_MESSAGES.get(response_language, FALLBACK_MESSAGES["English"]),
             "score": best_score,
             "sources": sources
         }
 
-    # Step 7: Safety check — catch degenerate output immediately
+    # Step 7: Safety check — catch degenerate output
     if is_degenerate(answer):
-        print(f"Degenerate output detected on initial generation for language={response_language}")
+        print(f"Degenerate output detected for language={response_language}")
         return {
             "answer": FALLBACK_MESSAGES.get(response_language, FALLBACK_MESSAGES["English"]),
             "score": round(best_score, 4),
             "sources": sources
         }
 
-    # Step 8: Verification pass for reliable languages only
-    if response_language in RELIABLE_FOR_TRANSLATION_PASS:
-        try:
-            verify_res = gemini_client.models.generate_content(
-                model="gemini-2.5-flash",
-                contents=(
-                    f"You are a strict language checker. The text below must be entirely in "
-                    f"{response_language} with no markdown formatting.\n\n"
-                    f"If it is already correct, return it unchanged.\n"
-                    f"If it contains English or markdown, fix it.\n"
-                    f"Return ONLY the corrected plain text.\n\n"
-                    f"Text:\n{answer}"
-                ),
-                config=types.GenerateContentConfig(
-                    temperature=0.0,
-                    max_output_tokens=900,
-                )
-            )
-            corrected = verify_res.text.strip()
-            if corrected and not is_degenerate(corrected):
-                answer = corrected
-            else:
-                print(f"Verification pass produced degenerate output, keeping original")
-        except Exception as e:
-            print(f"Verification pass failed: {e}")
-
-    # Step 9: Strip any remaining markdown
+    # Step 8: Strip any remaining markdown
     answer = strip_markdown(answer)
 
-    # Step 10: Final safety net
+    # Step 9: Final safety net
     if is_degenerate(answer):
         answer = FALLBACK_MESSAGES.get(response_language, FALLBACK_MESSAGES["English"])
 
