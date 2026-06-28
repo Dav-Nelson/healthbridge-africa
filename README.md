@@ -2,7 +2,8 @@
 
 > Speak in your language. Get reliable health guidance.
 
-A multilingual voice health agent for Nigeria, Ghana, Ethiopia, and Kenya.
+A multilingual voice health agent for Africa.
+Currently grounded in verified health guidelines from Nigeria, Ghana, Kenya, and Ethiopia, with support for English, Nigerian Pidgin, Swahili, Twi, Oromo, and Amharic.
 Built by Async Africa for The Build 2026 by NSK AI and The Udara Project.
 
 Live: https://healthbridge-africa.vercel.app
@@ -12,11 +13,13 @@ GitHub: https://github.com/Dav-Nelson/healthbridge-africa
 
 ## The Problem
 
-Six hundred million people across Sub-Saharan Africa face a health question
-with nowhere reliable to turn. Google is in English. Clinics are hours away.
-WhatsApp rumours fill the gap, and people act on wrong information or do
-nothing at all. Preventable conditions become emergencies because the first
-point of contact failed.
+Health questions don't wait until you're sitting in a hospital.
+
+Across Africa, millions of people need reliable health guidance long before they can reach a doctor. They turn to Google, but the information is often difficult to understand, written for different healthcare systems, or only available in English. Others rely on WhatsApp messages, social media, or word of mouth, where misinformation spreads quickly.
+
+For many people in Nigeria, Ghana, Ethiopia, and Kenya, the challenge isn't just access to healthcare, it's access to trusted health information in the language they speak every day.
+
+The result is delayed care, unnecessary anxiety, and preventable illnesses becoming emergencies.
 
 ---
 
@@ -25,11 +28,12 @@ point of contact failed.
 HealthBridge Africa is a voice-first AI health agent that lets people speak
 or type health questions in their own language and receive grounded,
 conversational guidance drawn from a curated knowledge base built on WHO
-guidelines and country-level health protocols.
+guidelines and country-level health protocols for Nigeria, Ghana, Ethiopia,
+and Kenya.
 
 The assistant remembers context across a conversation, asks clarifying
 questions instead of giving flat one-shot answers, and responds in text
-with voice playback and inline clinical imagery.
+with voice playback at adjustable speed.
 
 It does not replace doctors. It helps people know when to see one.
 
@@ -39,15 +43,14 @@ It does not replace doctors. It helps people know when to see one.
 
 English, Nigerian Pidgin, Swahili, Oromo, Twi, Amharic.
 
-Voice transcription is strongest for English, Swahili, and Amharic, which
-Whisper-large-v3 supports natively. Pidgin and Twi route through
-English-mode transcription since Whisper has no dedicated model for either.
-Typed input in all six languages is unaffected by this limitation.
+Users can switch languages at any time using the dropdown in the header.
+The entire interface responds — welcome messages, placeholders, disclaimers,
+FAQ, and AI responses all adapt to the selected language.
 
-Gemini 2.5 Flash handles generation and has meaningfully better multilingual
-coverage than the Llama-3.1-8B model used in earlier weeks, particularly
-for Amharic and Oromo. Twi remains the weakest supported language due to
-limited training data in available open models.
+Voice transcription is strongest for English, Swahili, and Amharic, which
+Whisper-large-v3 supports natively. Pidgin and Twi route through English-mode
+transcription since Whisper has no dedicated model for either. Typed input
+in all six languages is unaffected by this limitation.
 
 ---
 
@@ -58,31 +61,71 @@ User speaks or types
 
 React Frontend (Vercel)
 
+Language dropdown in header triggers full interface switch
+
+OnboardingModal, ChatDisplay, BotMessageBubble,
+
+ResponsePlayer (speed control + global audio bouncer),
+
+SettingsPanel (multilingual, session deletion),
+
+HelpModal (FAQ in all 6 languages),
+
+HistoryPanel (session-scoped conversation history)
+
 |
 
 Node.js + Express Gateway (Railway)
 
-helmet, CORS, rate limiting, input validation
+helmet (security headers)
+
+CORS locked to healthbridge-africa.vercel.app
+
+express-rate-limit (60 req/15min general, 20 req/15min AI endpoints)
+
+trust proxy enabled for Railway reverse proxy
+
+Input validation (2000 char max, 10MB audio max)
+
+Routes: /api/voice/chat, /text-chat, /speak, /history (GET + DELETE)
+
+Session history stored and retrieved from Neon PostgreSQL
 
 |
 
 FastAPI AI Pipeline (Railway)
 
-Whisper-large-v3 (Groq)        voice to text
-Llama-3.3-70b (Groq)           language detection and English translation
-Gemini embedding-001 (Google)  query embedding, 768 dimensions
-pgvector search (Neon)         top-5 grounded health chunks
-Gemini 2.5 Flash (Google)      RAG generation in user's language
-gTTS                           audio synthesis, in-memory, Base64
+Whisper-large-v3 via Groq        voice to text
+Llama-3.3-70b via Groq           language detection + English translation
+
+with medical terminology anchors
+Gemini embedding-001             query embedding (768-dim, normalized)
+pgvector search (Neon)           top-5 semantically relevant chunks
+
+from 65-chunk verified knowledge base
+Llama-3.3-70b via Groq           RAG generation in user's language
+
+with degenerate output detection,
+
+markdown stripping, language enforcement,
+
+character-level and sentence-level
+
+safety checks
+gTTS                             audio synthesis, in-memory, Base64
 
 |
 
-Text response + inline disease image + voice playback with speed control
+Text response shown immediately
+
+Voice playback on demand at 1x, 1.5x, or 2x speed
+
+Global audio bouncer prevents multiple responses playing simultaneously
 
 
 Conversation history is stored per session in Neon PostgreSQL. The pipeline
 retrieves the last 6 messages for context on every request. Users can delete
-their full conversation history from both device and server via Settings.
+all conversation data from both device and server at any time via Settings.
 
 ---
 
@@ -90,15 +133,15 @@ their full conversation history from both device and server via Settings.
 
 | Layer | Technology | Notes |
 |---|---|---|
-| Frontend | React + Tailwind CSS | Deployed on Vercel |
-| Gateway | Node.js + Express | Deployed on Railway |
-| Security | helmet + express-rate-limit | CORS locked to Vercel domain |
-| AI Pipeline | FastAPI (Python) | Deployed on Railway |
+| Frontend | React + Tailwind CSS | Vercel |
+| Gateway | Node.js + Express | Railway |
+| Security | helmet + express-rate-limit + trust proxy | CORS locked to Vercel domain |
+| AI Pipeline | FastAPI (Python) | Railway, Dockerized |
 | Database | PostgreSQL + pgvector (Neon) | Conversations + vector embeddings |
 | STT | Whisper-large-v3 via Groq | Voice transcription |
 | Language Detection | Llama-3.3-70b via Groq | With medical terminology anchors |
-| Generation | Gemini 2.5 Flash via Google | Multilingual RAG generation |
-| Embeddings | Gemini embedding-001 via Google | 768-dimensional normalized vectors |
+| Generation | Llama-3.3-70b via Groq | Multilingual RAG generation |
+| Embeddings | Gemini embedding-001 via Google | 768-dim normalized vectors |
 | TTS | gTTS | In-memory synthesis, Base64 output |
 | Analytics | PostHog | Session tracking, geography, retention |
 | CI | GitHub Actions | Backend and frontend test suites |
@@ -108,19 +151,23 @@ their full conversation history from both device and server via Settings.
 ## Knowledge Base
 
 15+ conditions covered per country, grounded in official national guidelines.
+65 total chunks embedded via Gemini embedding-001 and stored in Neon with
+pgvector for semantic retrieval.
 
-Conditions: Malaria, Typhoid Fever, Cholera, Tuberculosis, HIV/AIDS,
+Conditions covered: Malaria, Typhoid Fever, Cholera, Tuberculosis, HIV/AIDS,
 Lassa Fever, Meningitis, Dengue Fever, Measles, Chickenpox, Mpox,
 Scabies, Ringworm, Eczema, Conjunctivitis, Jaundice, Malnutrition,
 Hypertension, Diabetes, Sickle Cell Disease, Schistosomiasis,
 Maternal and Neonatal Health.
 
-Sources: WHO Global Guidelines, Nigeria NCDC and FMoH, Ghana Health Service,
-Kenya Ministry of Health, Federal Ministry of Health Ethiopia and EPHI.
+Sources:
+- WHO Global Health Guidelines
+- Nigeria: NCDC and Federal Ministry of Health
+- Ghana: Ghana Health Service
+- Kenya: Ministry of Health
+- Ethiopia: FMoH Ethiopia and Ethiopian Public Health Institute
 
-65 total chunks embedded via Gemini embedding-001 and stored in Neon
-with pgvector for semantic retrieval. See ai-pipeline/knowledge-base/sources.md
-for full source attribution.
+See ai-pipeline/knowledge-base/sources.md for full source attribution.
 
 ---
 
@@ -129,11 +176,12 @@ for full source attribution.
 | Control | Implementation |
 |---|---|
 | HTTP security headers | helmet.js |
-| CORS | Locked to healthbridge-africa.vercel.app |
-| Rate limiting | 60 req per 15 min general, 20 req per 15 min on AI endpoints |
+| CORS | Locked to healthbridge-africa.vercel.app only |
+| Reverse proxy trust | app.set('trust proxy', 1) for Railway |
+| Rate limiting | 60 req/15min general, 20 req/15min AI endpoints |
 | Input validation | 2000 character max on all text inputs |
 | File upload limit | 10 MB via multer |
-| SQL injection protection | Parameterized queries throughout |
+| SQL injection | Parameterized queries throughout (psycopg2 + node-postgres) |
 | Secrets management | All keys in .env files, excluded via .gitignore |
 | HTTPS | Enforced at platform level by Vercel and Railway |
 
@@ -145,7 +193,8 @@ Conversations are stored in Neon PostgreSQL, linked only to an anonymous
 device session ID. No name, email, or personal identity is collected.
 
 Users can delete all conversation data from both device and server at any
-time via Settings, which calls DELETE /api/voice/history/:sessionId.
+time via Settings, which calls DELETE /api/voice/history/:sessionId and
+clears localStorage simultaneously.
 
 Automatic data expiry after 90 days is planned and not yet implemented.
 
@@ -153,28 +202,24 @@ Automatic data expiry after 90 days is planned and not yet implemented.
 
 ## Known Limitations
 
-Twi, Amharic, and Oromo language quality is inconsistent. Gemini 2.5 Flash
-performs significantly better than Llama-3.1-8B for these languages, but
-reliable fluent generation in Twi specifically remains a known gap. The
-pipeline includes degenerate output detection at both character and
-sentence level, with language-specific safe fallback messages when a
-response is detected as broken.
+Twi, Amharic, and Oromo language quality is inconsistent. The pipeline
+detects broken or degenerate output using character-level, word-level, and
+sentence-level checks, and substitutes honest fallback messages in the user's
+own language when generation fails. But many queries in these three languages
+still return the fallback rather than a real answer. This is a base model
+training data gap, not a prompt engineering problem.
 
-Pidgin and Twi voice transcription route through English-mode Whisper, which
-degrades accuracy for voice input in these two languages specifically.
+Pidgin and Twi voice transcription route through English-mode Whisper,
+degrading accuracy for voice input in these two languages specifically.
 
-The FAQ panel is in English only regardless of the active language setting.
-
-Disease images sourced from Wikimedia Commons have not been reviewed by a
-dermatologist. Several URLs returned broken images in production testing.
-Clinically validated imagery from Mind the Gap or Black Derm Directory is
-the planned replacement.
+Disease imagery was partially implemented using Wikimedia Commons URLs but
+most images returned 404 in production testing. The feature was removed
+before final submission and is listed as a roadmap item.
 
 No user authentication exists. Sessions are device-bound via localStorage.
-Two people sharing a device share a session unless one clears history.
 
-Free-tier hosting on Railway after Render suspended the service due to
-free-tier compute exhaustion from team testing.
+The FAQ panel translations were added by Ibukun in Week 6 but have not been
+validated by native speakers for all six languages.
 
 ---
 
@@ -195,8 +240,9 @@ cd ai-pipeline && pip install -r requirements.txt && cd ..
 
 # Environment variables
 cp .env.example .env
-# Fill in: GROQ_API_KEY, GEMINI_API_KEY, DATABASE_URL, PostHog key
-# Repeat for client/.env and ai-pipeline/.env
+# Root .env: GROQ_API_KEY, DATABASE_URL
+# client/.env: REACT_APP_API_URL
+# ai-pipeline/.env: GROQ_API_KEY, GEMINI_API_KEY, DATABASE_URL
 
 # Run backend
 npm run dev
@@ -212,15 +258,16 @@ uvicorn api.main:app --reload --port 8000
 
 ## Ingesting the Knowledge Base
 
-Run this once after cloning, or whenever knowledge base documents change:
+Run once after cloning, or whenever knowledge base documents change:
 
 ```bash
 cd ai-pipeline
 python -m rag.ingest_to_db
 ```
 
-Clears existing chunks, re-embeds all five documents via Gemini, and stores
-vectors in Neon. Requires DATABASE_URL and GEMINI_API_KEY in ai-pipeline/.env.
+Clears all existing chunks, re-embeds all five documents via Gemini
+embedding-001, and stores vectors in Neon. Requires DATABASE_URL and
+GEMINI_API_KEY in ai-pipeline/.env.
 
 ---
 
@@ -236,38 +283,84 @@ cd client && npm test -- --watchAll=false
 
 ---
 
+## Architecture Decisions and Trade-offs
+
+**Why Groq for generation instead of Gemini 2.5 Flash:**
+Gemini 2.5 Flash's thinking mode consumed the majority of the token budget
+before generating any output, causing responses to be cut off mid-sentence
+in Amharic and Pidgin. Llama-3.3-70b via Groq produces complete responses
+reliably and is already used for language detection, keeping the external
+API surface minimal.
+
+**Why Gemini embedding-001 for retrieval:**
+Switched from local sentence-transformers in Week 3 because sentence-transformers
+required torch, which exceeded Render's 512MB free tier memory limit and
+caused container crashes on every cold start. Gemini embedding-001 runs via
+API, has no local memory footprint, and produces 768-dim embeddings with
+strong semantic accuracy.
+
+**Why Neon PostgreSQL with pgvector instead of a dedicated vector database:**
+Keeps conversation history and vector embeddings in a single free-tier
+database, reducing infrastructure complexity and cost. Neon's serverless
+architecture handles variable load well within the free tier constraints.
+
+**Why Railway instead of Render:**
+Render suspended both services on June 24, 2026 after free tier compute
+hours were exhausted by team testing. Railway provides comparable free tier
+infrastructure without requiring a credit card and supports Docker deployment
+for the Python pipeline.
+
+**Why gTTS instead of Kokoro or ElevenLabs:**
+gTTS is the only free TTS engine that supports Swahili and Amharic natively.
+Kokoro was evaluated in Week 1 and dropped because it required GPU compute
+unavailable on the free tier. ElevenLabs has no free tier for production use.
+
+---
+
 ## Project Structure
 healthbridge-africa/
 
-client/                   React frontend
+client/                   React frontend (Vercel)
 
 src/
 
-components/           Header, ChatDisplay, BotMessageBubble,
+components/           Header (language dropdown), ChatDisplay,
 
-ResponsePlayer, SettingsPanel, HelpModal,
+BotMessageBubble, ResponsePlayer,
 
-HistoryPanel
+SettingsPanel, HelpModal, HistoryPanel
 
-OnboardingModal.js
+OnboardingModal.js    Language selection on first visit
 
-App.js
+App.js                Main app, language state, session management
 
-server/                   Node.js + Express gateway
+utils/tracking.js     PostHog analytics
 
-routes/                 voice.js, health.js
+server/                   Node.js + Express gateway (Railway)
+
+routes/
+
+voice.js              /chat, /text-chat, /speak, /history (GET+DELETE)
+
+health.js             /health endpoint
 
 db/                     Neon PostgreSQL connection
 
-ai-pipeline/              FastAPI RAG pipeline
+ai-pipeline/              FastAPI RAG pipeline (Railway, Dockerized)
 
-api/                    main.py
+api/main.py             /ask, /transcribe, /speak, /health endpoints
 
-rag/                    query.py, ingest_to_db.py
+rag/
 
-tts/                    speak.py
+query.py              Full RAG pipeline with safety nets
 
-knowledge-base/         WHO + 4 country health documents
+ingest_to_db.py       Knowledge base chunking and embedding
+
+tts/speak.py            gTTS synthesis with language routing
+
+knowledge-base/         WHO + 4 country health documents (65 chunks)
+
+Dockerfile              Dynamic PORT for Railway deployment
 
 tests/                    Backend test suite
 
@@ -279,9 +372,9 @@ tests/                    Backend test suite
 
 | Name | Country | Role |
 |---|---|---|
-| David Nelson | Nigeria | Team lead, backend and architecture |
-| Ibukun Oluwafemi | Nigeria | Frontend development, UI/UX, African design system |
-| Ibsa Magarsa | Ethiopia | AI pipeline, Amharic and Oromo validation |
+| David Nelson | Nigeria | Team lead, backend, RAG pipeline, security, deployment |
+| Ibukun Oluwafemi | Nigeria | Frontend, UI/UX, African design system, multilingual interface |
+| Ibsa Magarsa | Ethiopia | AI pipeline engineering, Amharic and Oromo validation |
 | Peggy Eyram Attah | Ghana | User research, tester recruitment, Twi validation |
 
 ---
